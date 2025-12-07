@@ -9,309 +9,366 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
-        .loading-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .shake { animation: shake 0.5s; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        .bounce { animation: bounce 0.5s; }
-        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        .fade-in { animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .progress-bar { transition: width 0.3s; }
-        .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
-        .mind-map-node { transition: all 0.3s; }
-        .mind-map-node:hover { transform: scale(1.05); }
-        .knowledge-card { border-left: 4px solid; }
+        body{font-family:system-ui,-apple-system,sans-serif}
+        .gradient-bg{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)}
+        .spin{animation:spin 1s linear infinite}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .shake{animation:shake .5s}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+        .bounce{animation:bounce .5s}
+        @keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+        .fade{animation:fade .3s}
+        @keyframes fade{from{opacity:0}to{opacity:1}}
+        .card{background:rgba(30,41,59,.7);backdrop-filter:blur(10px)}
+        .bar{transition:width .3s}
+        .glow{box-shadow:0 0 20px rgba(59,130,246,.5)}
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
-const API = 'https://ve-system.onrender.com';
+const{useState,useEffect}=React;
+const API='https://ve-system.onrender.com';
 
-// === 通用組件 ===
-const Loading = () => <div className="flex justify-center p-8"><div className="loading-spin text-4xl">⚙️</div></div>;
-const Modal = ({ open, onClose, title, children, wide }) => {
-    if (!open) return null;
-    return (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className={`card rounded-2xl ${wide ? 'max-w-5xl' : 'max-w-2xl'} w-full max-h-[90vh] overflow-hidden border border-slate-600 fade-in`} onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                    <h2 className="text-xl font-bold">{title}</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
-                </div>
-                <div className="p-4 overflow-y-auto max-h-[80vh]">{children}</div>
+// 通用
+const Loading=()=><div className="flex justify-center p-8"><div className="spin text-4xl">⚙️</div></div>;
+const Modal=({open,onClose,title,children,wide})=>{
+    if(!open)return null;
+    return(<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className={`card rounded-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] overflow-hidden border border-slate-600 fade`} onClick={e=>e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                <h2 className="text-xl font-bold">{title}</h2>
+                <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[80vh]">{children}</div>
+        </div>
+    </div>);
+};
+const Tab=({tabs,active,set})=>(
+    <div className="flex gap-2 flex-wrap mb-4">
+        {tabs.map(t=><button key={t.id} onClick={()=>set(t.id)} className={`px-4 py-2 rounded-lg text-sm ${active===t.id?'bg-blue-600':'bg-slate-700 hover:bg-slate-600'}`}>{t.icon} {t.name}</button>)}
+    </div>
+);
+const Stat=({icon,value,label,color})=>(
+    <div className="text-center">
+        <div className={`text-2xl font-bold ${color||'text-white'}`}>{icon} {value}</div>
+        <div className="text-xs text-slate-400">{label}</div>
+    </div>
+);
+
+// 導航
+const Nav=({page,setPage})=>(
+    <nav className="bg-slate-900/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={()=>setPage('home')}>
+                <span className="text-2xl">🌌</span>
+                <span className="font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VE-System</span>
+            </div>
+            <div className="flex gap-1">
+                {[{id:'home',i:'🏠',n:'首頁'},{id:'edu',i:'📚',n:'教育'},{id:'game',i:'🎮',n:'遊戲'}].map(x=>
+                    <button key={x.id} onClick={()=>setPage(x.id)} className={`px-3 py-1.5 rounded-lg text-sm ${page===x.id?'bg-blue-600':'hover:bg-slate-700'}`}>{x.i}<span className="hidden sm:inline ml-1">{x.n}</span></button>
+                )}
             </div>
         </div>
-    );
-};
+    </nav>
+);
 
-const Navbar = ({ page, setPage }) => {
-    const items = [
-        { id: 'home', icon: '🏠', name: '首頁' },
-        { id: 'edu', icon: '📚', name: '教育系統' },
-        { id: 've', icon: '🌍', name: '虛擬地球' },
-    ];
-    return (
-        <nav className="bg-slate-900/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
-            <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPage('home')}>
-                    <span className="text-2xl">🌌</span>
-                    <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VE-System</span>
-                </div>
-                <div className="flex gap-1">
-                    {items.map(i => (
-                        <button key={i.id} onClick={() => setPage(i.id)}
-                            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${page === i.id ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
-                            <span>{i.icon}</span><span className="hidden sm:inline">{i.name}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </nav>
-    );
-};
-
-// === 首頁 ===
-const Home = ({ setPage }) => (
+// 首頁
+const Home=({setPage})=>(
     <div className="space-y-6">
         <div className="text-center py-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">虛擾地球系統</h1>
-            <p className="text-slate-400 mt-2">Virtual Earth System v1.0</p>
+            <p className="text-slate-400 mt-2">E18K 防詐教育遊戲平台</p>
         </div>
         <div className="grid md:grid-cols-2 gap-6">
-            <div onClick={() => setPage('edu')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-blue-500 transition">
-                <div className="text-4xl mb-4">📚</div>
+            <div onClick={()=>setPage('edu')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-blue-500 glow transition">
+                <div className="text-5xl mb-4">📚</div>
                 <h2 className="text-xl font-bold">教育系統</h2>
-                <p className="text-slate-400 text-sm mt-2">108課綱 · 知識節點 · 心智圖 · AI課程</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">14 科目</span>
-                    <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-400 rounded">103 概念</span>
-                    <span className="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">33 詳解</span>
+                <p className="text-slate-400 text-sm mt-2">108課綱 · AI認證 · 知識節點 · 術語庫</p>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+                    <div><div className="text-blue-400 font-bold">546</div>題庫</div>
+                    <div><div className="text-purple-400 font-bold">103</div>概念</div>
+                    <div><div className="text-green-400 font-bold">96</div>術語</div>
+                    <div><div className="text-yellow-400 font-bold">35</div>徽章</div>
                 </div>
             </div>
-            <div onClick={() => setPage('ve')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-green-500 transition">
-                <div className="text-4xl mb-4">🌍</div>
-                <h2 className="text-xl font-bold">虛擬地球 E18K</h2>
-                <p className="text-slate-400 text-sm mt-2">防詐遊戲 · NPC對話 · 任務系統</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="text-xs px-2 py-1 bg-red-900/50 text-red-400 rounded">11 任務</span>
-                    <span className="text-xs px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded">8 NPC</span>
+            <div onClick={()=>setPage('game')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-green-500 glow transition">
+                <div className="text-5xl mb-4">🎮</div>
+                <h2 className="text-xl font-bold">E18K 遊戲</h2>
+                <p className="text-slate-400 text-sm mt-2">怪物收集 · BOSS戰 · 詐騙防禦 · PVP對戰</p>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+                    <div><div className="text-red-400 font-bold">470</div>怪物</div>
+                    <div><div className="text-orange-400 font-bold">500+</div>技能</div>
+                    <div><div className="text-cyan-400 font-bold">100+</div>詐騙案例</div>
+                    <div><div className="text-pink-400 font-bold">5</div>BOSS</div>
                 </div>
             </div>
         </div>
     </div>
 );
 
-// === 教育系統 (完整版) ===
-const Education = () => {
-    const [tab, setTab] = useState('subjects');
-    const [subjects, setSubjects] = useState([]);
-    const [concepts, setConcepts] = useState([]);
-    const [conceptLinks, setConceptLinks] = useState([]);
-    const [knowledgeDetailed, setKnowledgeDetailed] = useState([]);
-    const [curriculum108, setCurriculum108] = useState({ competencies: [], domains: [] });
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [selectedConcept, setSelectedConcept] = useState(null);
-    const [selectedKnowledge, setSelectedKnowledge] = useState(null);
-    const [loading, setLoading] = useState(true);
+// ========== 教育系統 ==========
+const Education=()=>{
+    const [tab,setTab]=useState('quiz');
+    const [data,setData]=useState({subjects:[],concepts:[],conceptLinks:[],knowledge:[],glossary:[],badges:[],achievements:[],questions:[],aiModules:[],aiLessons:[],curriculum108:{competencies:[],domains:[],stages:[],issues:[]}});
+    const [loading,setLoading]=useState(true);
+    const [selected,setSelected]=useState(null);
+    const [modal,setModal]=useState(null);
     
-    // 測驗相關
-    const [quizMode, setQuizMode] = useState('menu');
-    const [questions, setQuestions] = useState([]);
-    const [currentQ, setCurrentQ] = useState(0);
-    const [answer, setAnswer] = useState(null);
-    const [result, setResult] = useState(null);
-    const [score, setScore] = useState({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
-    const [timer, setTimer] = useState(30);
-    const [timerOn, setTimerOn] = useState(false);
-    const [quizSubject, setQuizSubject] = useState('all');
-    const [quizCount, setQuizCount] = useState(10);
+    // 測驗狀態
+    const [quizMode,setQuizMode]=useState('menu');
+    const [quizQs,setQuizQs]=useState([]);
+    const [qIdx,setQIdx]=useState(0);
+    const [answer,setAnswer]=useState(null);
+    const [result,setResult]=useState(null);
+    const [score,setScore]=useState({c:0,t:0,streak:0,max:0});
+    const [timer,setTimer]=useState(30);
+    const [timerOn,setTimerOn]=useState(false);
+    const [quizSubj,setQuizSubj]=useState('all');
+    const [quizType,setQuizType]=useState('exam');
 
-    useEffect(() => {
+    useEffect(()=>{
         setLoading(true);
         Promise.all([
-            fetch(`${API}/api/v1/db/education/table/subjects?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
-            fetch(`${API}/api/v1/db/education/table/concepts?limit=150`).then(r => r.json()).catch(() => ({ data: [] })),
-            fetch(`${API}/api/v1/db/education/table/concept_links?limit=100`).then(r => r.json()).catch(() => ({ data: [] })),
-            fetch(`${API}/api/v1/db/education/table/subject_knowledge_detailed?limit=50`).then(r => r.json()).catch(() => ({ data: [] })),
-            fetch(`${API}/api/v1/db/education/table/curriculum_108_competencies?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
-            fetch(`${API}/api/v1/db/education/table/curriculum_108_domains?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
-        ]).then(([subj, conc, links, know, comp, dom]) => {
-            setSubjects(subj.data || []);
-            setConcepts(conc.data || []);
-            setConceptLinks(links.data || []);
-            setKnowledgeDetailed(know.data || []);
-            setCurriculum108({ competencies: comp.data || [], domains: dom.data || [] });
+            fetch(`${API}/api/v1/db/education/table/subjects?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/concepts?limit=150`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/concept_links?limit=100`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/subject_knowledge_detailed?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/ai_cert_glossary?limit=100`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/badges?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/achievements?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/ai_cert_modules?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/ai_cert_lessons?limit=30`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/curriculum_108_competencies?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/curriculum_108_domains?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/curriculum_108_stages?limit=10`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/education/table/curriculum_108_issues?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+        ]).then(([subj,conc,links,know,gloss,bdg,ach,mod,les,comp,dom,stg,iss])=>{
+            setData({
+                subjects:subj.data||[],concepts:conc.data||[],conceptLinks:links.data||[],
+                knowledge:know.data||[],glossary:gloss.data||[],badges:bdg.data||[],
+                achievements:ach.data||[],aiModules:mod.data||[],aiLessons:les.data||[],
+                curriculum108:{competencies:comp.data||[],domains:dom.data||[],stages:stg.data||[],issues:iss.data||[]}
+            });
             setLoading(false);
         });
-    }, []);
+    },[]);
 
     // 計時器
-    useEffect(() => {
-        if (timerOn && timer > 0) {
-            const t = setTimeout(() => setTimer(v => v - 1), 1000);
-            return () => clearTimeout(t);
-        } else if (timer === 0 && timerOn) {
-            setTimerOn(false);
-            setResult({ correct: false, timeout: true, correct_answer: questions[currentQ]?.answer });
-            setScore(p => ({ ...p, total: p.total + 1, streak: 0 }));
+    useEffect(()=>{
+        if(timerOn&&timer>0){const t=setTimeout(()=>setTimer(v=>v-1),1000);return()=>clearTimeout(t);}
+        else if(timer===0&&timerOn){setTimerOn(false);setResult({correct:false,timeout:true,correct_answer:quizQs[qIdx]?.answer});setScore(p=>({...p,t:p.t+1,streak:0}));}
+    },[timer,timerOn]);
+
+    const icons={chinese:'📖',english:'🔤',math:'🔢',physics:'⚛️',chemistry:'🧪',biology:'🧬',earth_science:'🌍',history:'📜',geography:'🗺️',civics:'⚖️'};
+    const getRelations=(id)=>({
+        pre:data.conceptLinks.filter(l=>l.target_id===id).map(l=>data.concepts.find(c=>c.id===l.source_id)).filter(Boolean),
+        post:data.conceptLinks.filter(l=>l.source_id===id).map(l=>data.concepts.find(c=>c.id===l.target_id)).filter(Boolean)
+    });
+
+    const loadQuiz=async()=>{
+        try{
+            const table=quizType==='ai'?'ai_cert_questions':'exam_questions';
+            const url=quizSubj==='all'?`${API}/api/v1/education/questions?limit=10`:`${API}/api/v1/education/questions?limit=10&subject=${quizSubj}`;
+            const res=await fetch(url);
+            const d=await res.json();
+            if(d.questions?.length>0){setQuizQs(d.questions);setQIdx(0);setScore({c:0,t:0,streak:0,max:0});setAnswer(null);setResult(null);setQuizMode('quiz');setTimer(30);setTimerOn(true);}
+            else alert('沒有題目');
+        }catch(e){alert('載入失敗');}
+    };
+    const checkAns=async(ans)=>{
+        if(result)return;setAnswer(ans);setTimerOn(false);
+        try{
+            const res=await fetch(`${API}/api/v1/education/check`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:quizQs[qIdx].question_id,answer:ans})});
+            const d=await res.json();setResult(d);
+            const ns=d.correct?score.streak+1:0;
+            setScore(p=>({c:p.c+(d.correct?1:0),t:p.t+1,streak:ns,max:Math.max(p.max,ns)}));
+        }catch(e){}
+    };
+    const nextQ=()=>{if(qIdx<quizQs.length-1){setQIdx(p=>p+1);setAnswer(null);setResult(null);setTimer(30);setTimerOn(true);}else setQuizMode('result');};
+
+    if(loading)return<Loading/>;
+
+    const tabs=[
+        {id:'quiz',icon:'🎯',name:'測驗'},
+        {id:'108',icon:'📖',name:'108課綱'},
+        {id:'concepts',icon:'🧩',name:'知識節點'},
+        {id:'knowledge',icon:'📝',name:'詳解口訣'},
+        {id:'mindmap',icon:'🧠',name:'心智圖'},
+        {id:'ai',icon:'🤖',name:'AI認證'},
+        {id:'glossary',icon:'📖',name:'術語庫'},
+        {id:'badges',icon:'🎖️',name:'徽章成就'},
+    ];
+
+    // 測驗
+    const Quiz=()=>{
+        if(quizMode==='quiz'){
+            const q=quizQs[qIdx];if(!q)return<Loading/>;
+            const opts=Array.isArray(q.options)?q.options:[];
+            return(
+                <div className="max-w-3xl mx-auto space-y-4">
+                    <div className="flex justify-between items-center">
+                        <button onClick={()=>{setQuizMode('menu');setTimerOn(false);}} className="text-slate-400 hover:text-white">← 返回</button>
+                        <div className="flex items-center gap-4">
+                            {score.streak>=3&&<span className="text-orange-400 bounce">🔥{score.streak}</span>}
+                            <span className="text-green-400 font-bold">{score.c}/{score.t}</span>
+                        </div>
+                    </div>
+                    <div className="card rounded-xl p-6 border border-slate-700">
+                        <div className="flex justify-between text-sm text-slate-400 mb-2">
+                            <span>題目 {qIdx+1}/{quizQs.length}</span>
+                            <span className={timer<=10?'text-red-400 font-bold':''}>{timer}s</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-700 rounded-full mb-4"><div className={`h-1.5 rounded-full bar ${timer<=10?'bg-red-500':'bg-green-500'}`} style={{width:`${timer/30*100}%`}}></div></div>
+                        <div className="mb-2"><span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">{q.subject||q.subject_id}</span></div>
+                        <h2 className="text-lg mb-6">{q.question_text}</h2>
+                        <div className="space-y-2">
+                            {opts.map((opt,i)=>{
+                                const l=opt.charAt(0),sel=answer===l,cor=result?.correct_answer===l,wrong=sel&&!result?.correct;
+                                let cls='border-slate-600 hover:border-blue-500';
+                                if(result){if(cor)cls='border-green-500 bg-green-900/30 bounce';else if(wrong)cls='border-red-500 bg-red-900/30 shake';else cls='border-slate-700 opacity-50';}
+                                return<button key={i} onClick={()=>checkAns(l)} disabled={!!result} className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}><span className="font-bold mr-2">{l}.</span>{opt.substring(2)}</button>;
+                            })}
+                        </div>
+                        {result&&<div className={`mt-4 p-4 rounded-lg fade ${result.correct?'bg-green-900/30 border border-green-600':'bg-red-900/30 border border-red-600'}`}>
+                            <div className="font-bold">{result.timeout?'⏰ 時間到！':result.correct?'✅ 答對了！':'❌ 答錯了'}{!result.correct&&<span className="ml-2 text-green-400">正確: {result.correct_answer}</span>}</div>
+                            {q.explanation&&<p className="text-slate-300 text-sm mt-2">{q.explanation}</p>}
+                        </div>}
+                        {result&&<button onClick={nextQ} className="w-full py-3 bg-blue-600 rounded-lg font-semibold mt-4">{qIdx<quizQs.length-1?'下一題 →':'查看結果 🏆'}</button>}
+                    </div>
+                </div>
+            );
         }
-    }, [timer, timerOn]);
-
-    // 科目圖標
-    const subjectIcons = { chinese: '📖', english: '🔤', math: '🔢', physics: '⚛️', chemistry: '🧪', biology: '🧬', earth_science: '🌍', history: '📜', geography: '🗺️', civics: '⚖️' };
-    const subjectColors = { chinese: 'border-red-500', english: 'border-blue-500', math: 'border-purple-500', physics: 'border-cyan-500', chemistry: 'border-green-500', biology: 'border-lime-500', earth_science: 'border-amber-500', history: 'border-orange-500', geography: 'border-teal-500', civics: 'border-pink-500' };
-
-    // 取得概念的前置和衍生
-    const getConceptRelations = (conceptId) => {
-        const prerequisites = conceptLinks.filter(l => l.target_id === conceptId).map(l => concepts.find(c => c.id === l.source_id)).filter(Boolean);
-        const derivatives = conceptLinks.filter(l => l.source_id === conceptId).map(l => concepts.find(c => c.id === l.target_id)).filter(Boolean);
-        return { prerequisites, derivatives };
-    };
-
-    // 載入測驗
-    const loadQuestions = async () => {
-        try {
-            const url = quizSubject === 'all' ? `${API}/api/v1/education/questions?limit=${quizCount}` : `${API}/api/v1/education/questions?limit=${quizCount}&subject=${quizSubject}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.questions?.length > 0) {
-                setQuestions(data.questions);
-                setCurrentQ(0);
-                setScore({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
-                setAnswer(null);
-                setResult(null);
-                setQuizMode('quiz');
-                setTimer(30);
-                setTimerOn(true);
-            } else {
-                alert('此科目沒有題目');
-            }
-        } catch (e) { alert('載入失敗'); }
-    };
-
-    const checkAnswer = async (ans) => {
-        if (result) return;
-        setAnswer(ans);
-        setTimerOn(false);
-        try {
-            const res = await fetch(`${API}/api/v1/education/check`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question_id: questions[currentQ].question_id, answer: ans })
-            });
-            const data = await res.json();
-            setResult(data);
-            const newStreak = data.correct ? score.streak + 1 : 0;
-            setScore(p => ({ correct: p.correct + (data.correct ? 1 : 0), total: p.total + 1, streak: newStreak, maxStreak: Math.max(p.maxStreak, newStreak) }));
-        } catch (e) {}
-    };
-
-    const nextQuestion = () => {
-        if (currentQ < questions.length - 1) {
-            setCurrentQ(p => p + 1);
-            setAnswer(null);
-            setResult(null);
-            setTimer(30);
-            setTimerOn(true);
-        } else {
-            setQuizMode('result');
+        if(quizMode==='result'){
+            const pct=Math.round(score.c/score.t*100),grade=pct>=90?'S':pct>=80?'A':pct>=70?'B':pct>=60?'C':'D';
+            const colors={S:'text-yellow-400',A:'text-green-400',B:'text-blue-400',C:'text-orange-400',D:'text-red-400'};
+            return(
+                <div className="max-w-md mx-auto card rounded-xl p-8 border border-slate-700 text-center">
+                    <div className="text-5xl mb-4">🎉</div><h2 className="text-2xl font-bold">挑戰完成！</h2>
+                    <div className={`text-8xl font-bold my-6 ${colors[grade]}`}>{grade}</div>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-green-400">{score.c}</div><div className="text-xs text-slate-500">答對</div></div>
+                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold">{pct}%</div><div className="text-xs text-slate-500">正確率</div></div>
+                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-orange-400">{score.max}</div><div className="text-xs text-slate-500">連勝</div></div>
+                    </div>
+                    <div className="flex gap-3"><button onClick={()=>setQuizMode('menu')} className="flex-1 py-2 bg-slate-700 rounded-lg">返回</button><button onClick={loadQuiz} className="flex-1 py-2 bg-blue-600 rounded-lg">再玩</button></div>
+                </div>
+            );
         }
+        return(
+            <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="card rounded-xl p-6 border border-slate-700">
+                        <h4 className="font-semibold mb-4">📚 選擇科目</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                            {['all','數學','國文','英文','自然','社會'].map(s=><button key={s} onClick={()=>setQuizSubj(s)} className={`p-2 rounded-lg text-sm ${quizSubj===s?'bg-blue-600':'bg-slate-700'}`}>{s==='all'?'全部':s}</button>)}
+                        </div>
+                    </div>
+                    <div className="card rounded-xl p-6 border border-slate-700">
+                        <h4 className="font-semibold mb-4">📋 題庫來源</h4>
+                        <div className="flex gap-2 mb-4">
+                            <button onClick={()=>setQuizType('exam')} className={`flex-1 p-2 rounded-lg ${quizType==='exam'?'bg-green-600':'bg-slate-700'}`}>📝 108課綱 (107題)</button>
+                            <button onClick={()=>setQuizType('ai')} className={`flex-1 p-2 rounded-lg ${quizType==='ai'?'bg-green-600':'bg-slate-700'}`}>🤖 AI認證 (339題)</button>
+                        </div>
+                        <button onClick={loadQuiz} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-bold">🚀 開始挑戰</button>
+                    </div>
+                </div>
+                <div className="card rounded-xl p-4 border border-slate-700">
+                    <h4 className="font-semibold mb-3">📊 題庫統計</h4>
+                    <div className="grid grid-cols-4 gap-4 text-center">
+                        <div><div className="text-2xl font-bold text-blue-400">107</div><div className="text-xs text-slate-500">108課綱題</div></div>
+                        <div><div className="text-2xl font-bold text-purple-400">339</div><div className="text-xs text-slate-500">AI認證題</div></div>
+                        <div><div className="text-2xl font-bold text-green-400">100</div><div className="text-xs text-slate-500">練習題</div></div>
+                        <div><div className="text-2xl font-bold text-yellow-400">546</div><div className="text-xs text-slate-500">總題數</div></div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
-    if (loading) return <Loading />;
-
-    // === 科目選擇 ===
-    const SubjectsTab = () => (
+    // 108課綱
+    const Curriculum108=()=>(
         <div className="space-y-6">
-            <h3 className="font-semibold text-lg">📚 108課綱科目</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {subjects.map((s, i) => (
-                    <div key={i} onClick={() => { setSelectedSubject(s); setTab('concepts'); }}
-                        className={`card rounded-xl p-4 border cursor-pointer hover:border-blue-500 transition text-center ${subjectColors[s.code] || 'border-slate-600'}`}>
-                        <div className="text-4xl mb-2">{subjectIcons[s.code] || '📘'}</div>
+            <div className="grid md:grid-cols-5 gap-3">
+                {data.subjects.map((s,i)=>(
+                    <div key={i} onClick={()=>setSelected({type:'subject',data:s})} className="card rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-blue-500 text-center">
+                        <div className="text-3xl mb-2">{icons[s.code]||'📘'}</div>
                         <div className="font-bold">{s.name}</div>
-                        <div className="text-xs text-slate-400 mt-1">{s.category}</div>
-                        <div className="text-xs text-slate-500">{concepts.filter(c => c.subject_code === s.code).length} 概念</div>
+                        <div className="text-xs text-slate-400">{data.concepts.filter(c=>c.subject_code===s.code).length} 概念</div>
                     </div>
                 ))}
             </div>
-            
-            <h3 className="font-semibold text-lg mt-8">🎯 108課綱核心素養</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-                {curriculum108.competencies.map((c, i) => (
-                    <div key={i} className="card rounded-xl p-4 border border-slate-700">
+            <h4 className="font-semibold">🎯 核心素養 ({data.curriculum108.competencies.length})</h4>
+            <div className="grid md:grid-cols-3 gap-3">
+                {data.curriculum108.competencies.map((c,i)=>(
+                    <div key={i} className="card rounded-lg p-3 border border-slate-700">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded text-xs ${c.dimension_code === 'A' ? 'bg-red-900/50 text-red-400' : c.dimension_code === 'B' ? 'bg-blue-900/50 text-blue-400' : 'bg-green-900/50 text-green-400'}`}>
-                                {c.competency_code}
-                            </span>
+                            <span className={`px-2 py-0.5 rounded text-xs ${c.dimension_code==='A'?'bg-red-900/50 text-red-400':c.dimension_code==='B'?'bg-blue-900/50 text-blue-400':'bg-green-900/50 text-green-400'}`}>{c.competency_code}</span>
                             <span className="font-bold text-sm">{c.competency_name}</span>
                         </div>
-                        <p className="text-xs text-slate-400 line-clamp-3">{c.description}</p>
-                        {c.e18k_mapping && <div className="mt-2 text-xs text-purple-400">🎮 E18K: {c.e18k_mapping}</div>}
+                        <p className="text-xs text-slate-400 line-clamp-2">{c.description}</p>
+                        {c.e18k_mapping&&<div className="mt-2 text-xs text-purple-400">🎮 {c.e18k_mapping}</div>}
                     </div>
                 ))}
             </div>
-
-            <h3 className="font-semibold text-lg mt-8">📖 學習領域</h3>
-            <div className="grid md:grid-cols-4 gap-4">
-                {curriculum108.domains.map((d, i) => (
-                    <div key={i} className="card rounded-xl p-4 border border-slate-700">
-                        <div className="font-bold text-blue-400">{d.domain_name}</div>
-                        <div className="text-xs text-slate-400 mt-1">{d.subjects}</div>
-                        {d.e18k_integration && <div className="mt-2 text-xs text-green-400">🎮 {d.e18k_integration}</div>}
+            <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h4 className="font-semibold mb-3">📖 學習領域 ({data.curriculum108.domains.length})</h4>
+                    <div className="space-y-2">
+                        {data.curriculum108.domains.map((d,i)=>(
+                            <div key={i} className="card rounded-lg p-3 border border-slate-700">
+                                <div className="font-bold text-blue-400">{d.domain_name}</div>
+                                <div className="text-xs text-slate-400">{d.subjects}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <h4 className="font-semibold mb-3">🌱 學習階段 ({data.curriculum108.stages.length})</h4>
+                    <div className="space-y-2">
+                        {data.curriculum108.stages.map((s,i)=>(
+                            <div key={i} className="card rounded-lg p-3 border border-slate-700">
+                                <div className="font-bold text-green-400">{s.stage_name}</div>
+                                <div className="text-xs text-slate-400">{s.description}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <h4 className="font-semibold">🔥 議題融入 ({data.curriculum108.issues.length})</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {data.curriculum108.issues.map((is,i)=>(
+                    <div key={i} className="card rounded-lg p-2 border border-slate-700 text-center">
+                        <div className="text-sm font-bold text-yellow-400">{is.issue_name}</div>
                     </div>
                 ))}
             </div>
         </div>
     );
 
-    // === 概念/知識節點 ===
-    const ConceptsTab = () => {
-        const filteredConcepts = selectedSubject ? concepts.filter(c => c.subject_code === selectedSubject.code) : concepts;
-        
-        return (
+    // 知識節點
+    const Concepts=()=>{
+        const filtered=selected?.type==='subject'?data.concepts.filter(c=>c.subject_code===selected.data.code):data.concepts;
+        return(
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => { setSelectedSubject(null); setTab('subjects'); }} className="text-slate-400 hover:text-white">← 返回</button>
-                        {selectedSubject && (
-                            <span className="text-lg font-bold">
-                                {subjectIcons[selectedSubject.code]} {selectedSubject.name} 知識節點
-                            </span>
-                        )}
-                    </div>
-                    <span className="text-sm text-slate-400">{filteredConcepts.length} 個概念</span>
+                {selected?.type==='subject'&&<button onClick={()=>setSelected(null)} className="text-slate-400 hover:text-white">← 返回全部 ({data.concepts.length})</button>}
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {data.subjects.map(s=><button key={s.code} onClick={()=>setSelected({type:'subject',data:s})} className={`px-3 py-1 rounded-lg text-sm ${selected?.data?.code===s.code?'bg-blue-600':'bg-slate-700'}`}>{icons[s.code]} {s.name}</button>)}
                 </div>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                    {filteredConcepts.map((c, i) => {
-                        const relations = getConceptRelations(c.id);
-                        return (
-                            <div key={i} onClick={() => setSelectedConcept(c)}
-                                className={`knowledge-card card rounded-xl p-4 cursor-pointer hover:border-blue-500 transition ${subjectColors[c.subject_code] || 'border-slate-600'}`}>
+                <div className="grid md:grid-cols-2 gap-3">
+                    {filtered.slice(0,20).map((c,i)=>{
+                        const rel=getRelations(c.id);
+                        return(
+                            <div key={i} onClick={()=>setModal({type:'concept',data:c,rel})} className="card rounded-lg p-4 border-l-4 border-blue-500 cursor-pointer hover:border-blue-400">
                                 <div className="flex justify-between items-start mb-2">
                                     <h4 className="font-bold text-blue-400">{c.title}</h4>
-                                    <div className="flex gap-1">
-                                        <span className="text-xs px-2 py-0.5 bg-slate-700 rounded">Ch.{c.chapter}</span>
-                                        <span className="text-xs px-2 py-0.5 bg-slate-700 rounded">難度 {c.difficulty}</span>
-                                    </div>
+                                    <span className="text-xs px-2 py-0.5 bg-slate-700 rounded">難度{c.difficulty}</span>
                                 </div>
                                 <p className="text-sm text-slate-300 line-clamp-2">{c.content}</p>
-                                {c.keywords && (
-                                    <div className="mt-2 flex flex-wrap gap-1">
-                                        {JSON.parse(c.keywords || '[]').slice(0, 4).map((k, j) => (
-                                            <span key={j} className="text-xs px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded">{k}</span>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="mt-3 flex gap-4 text-xs text-slate-500">
-                                    {relations.prerequisites.length > 0 && <span>⬅️ {relations.prerequisites.length} 前置</span>}
-                                    {relations.derivatives.length > 0 && <span>➡️ {relations.derivatives.length} 衍生</span>}
+                                {c.keywords&&<div className="mt-2 flex flex-wrap gap-1">{JSON.parse(c.keywords||'[]').slice(0,3).map((k,j)=><span key={j} className="text-xs px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded">{k}</span>)}</div>}
+                                <div className="mt-2 flex gap-3 text-xs text-slate-500">
+                                    {rel.pre.length>0&&<span>⬅️{rel.pre.length}前置</span>}
+                                    {rel.post.length>0&&<span>➡️{rel.post.length}衍生</span>}
                                 </div>
                             </div>
                         );
@@ -321,32 +378,24 @@ const Education = () => {
         );
     };
 
-    // === 詳細知識 (含解釋、範例、口訣) ===
-    const KnowledgeTab = () => (
+    // 詳解口訣
+    const Knowledge=()=>(
         <div className="space-y-4">
-            <h3 className="font-semibold text-lg">📝 詳細知識節點</h3>
-            <p className="text-sm text-slate-400">包含詳細解釋、範例、常見錯誤、記憶口訣</p>
-            
-            <div className="space-y-4">
-                {knowledgeDetailed.map((k, i) => (
-                    <div key={i} onClick={() => setSelectedKnowledge(k)}
-                        className="card rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+            <p className="text-sm text-slate-400">含詳細解釋、範例、記憶口訣、常見錯誤 ({data.knowledge.length})</p>
+            <div className="space-y-3">
+                {data.knowledge.map((k,i)=>(
+                    <div key={i} onClick={()=>setModal({type:'knowledge',data:k})} className="card rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-blue-500">
                         <div className="flex justify-between items-start">
-                            <div>
-                                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-400 rounded mr-2">{k.subject_name}</span>
-                                <span className="text-xs text-slate-500">{k.chapter}</span>
-                            </div>
-                            <span className={`text-xs px-2 py-0.5 rounded ${k.difficulty <= 2 ? 'bg-green-900/50 text-green-400' : k.difficulty <= 3 ? 'bg-yellow-900/50 text-yellow-400' : 'bg-red-900/50 text-red-400'}`}>
-                                難度 {k.difficulty}
-                            </span>
+                            <div><span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-400 rounded mr-2">{k.subject_name}</span><span className="text-xs text-slate-500">{k.chapter}</span></div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${k.difficulty<=2?'bg-green-900/50 text-green-400':k.difficulty<=3?'bg-yellow-900/50 text-yellow-400':'bg-red-900/50 text-red-400'}`}>難度{k.difficulty}</span>
                         </div>
                         <h4 className="font-bold text-lg mt-2">{k.topic}</h4>
-                        <p className="text-sm text-slate-300 mt-1">{k.content}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {k.detailed_explanation && <span className="text-xs px-2 py-1 bg-purple-900/30 text-purple-400 rounded">📖 詳解</span>}
-                            {k.examples && <span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded">📝 範例</span>}
-                            {k.mnemonics && <span className="text-xs px-2 py-1 bg-yellow-900/30 text-yellow-400 rounded">💡 口訣</span>}
-                            {k.common_mistakes && <span className="text-xs px-2 py-1 bg-red-900/30 text-red-400 rounded">⚠️ 常錯</span>}
+                        <p className="text-sm text-slate-300 mt-1 line-clamp-2">{k.content}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {k.detailed_explanation&&<span className="text-xs px-2 py-1 bg-purple-900/30 text-purple-400 rounded">📖詳解</span>}
+                            {k.examples&&<span className="text-xs px-2 py-1 bg-green-900/30 text-green-400 rounded">📝範例</span>}
+                            {k.mnemonics&&<span className="text-xs px-2 py-1 bg-yellow-900/30 text-yellow-400 rounded">💡口訣</span>}
+                            {k.common_mistakes&&<span className="text-xs px-2 py-1 bg-red-900/30 text-red-400 rounded">⚠️常錯</span>}
                         </div>
                     </div>
                 ))}
@@ -354,329 +403,160 @@ const Education = () => {
         </div>
     );
 
-    // === 心智圖 ===
-    const MindMapTab = () => {
-        const [centerConcept, setCenterConcept] = useState(null);
-        const conceptsWithLinks = concepts.filter(c => conceptLinks.some(l => l.source_id === c.id || l.target_id === c.id));
-        
-        if (!centerConcept && conceptsWithLinks.length > 0) {
-            setCenterConcept(conceptsWithLinks[0]);
-        }
-        
-        if (!centerConcept) return <div className="text-center py-8 text-slate-400">載入中...</div>;
-        
-        const relations = getConceptRelations(centerConcept.id);
-        
-        return (
+    // 心智圖
+    const MindMap=()=>{
+        const [center,setCenter]=useState(data.concepts.find(c=>data.conceptLinks.some(l=>l.source_id===c.id||l.target_id===c.id)));
+        if(!center)return<div className="text-center py-8 text-slate-400">載入中...</div>;
+        const rel=getRelations(center.id);
+        return(
             <div className="space-y-4">
-                <h3 className="font-semibold text-lg">🧠 概念心智圖</h3>
-                <p className="text-sm text-slate-400">選擇概念查看前置與衍生關係</p>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {conceptsWithLinks.slice(0, 15).map((c, i) => (
-                        <button key={i} onClick={() => setCenterConcept(c)}
-                            className={`px-3 py-1 rounded-lg text-sm ${centerConcept?.id === c.id ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}>
-                            {c.title}
-                        </button>
-                    ))}
-                </div>
-                
+                <div className="flex flex-wrap gap-2">{data.concepts.filter(c=>data.conceptLinks.some(l=>l.source_id===c.id||l.target_id===c.id)).slice(0,12).map((c,i)=><button key={i} onClick={()=>setCenter(c)} className={`px-3 py-1 rounded-lg text-sm ${center?.id===c.id?'bg-blue-600':'bg-slate-700'}`}>{c.title}</button>)}</div>
                 <div className="card rounded-xl p-6 border border-slate-700">
                     <div className="grid grid-cols-3 gap-4 items-center">
-                        {/* 前置概念 */}
                         <div className="space-y-2">
-                            <div className="text-center text-sm text-slate-400 mb-2">⬅️ 前置概念</div>
-                            {relations.prerequisites.length > 0 ? relations.prerequisites.map((p, i) => (
-                                <div key={i} onClick={() => setCenterConcept(p)}
-                                    className="mind-map-node card rounded-lg p-3 border border-orange-500/50 cursor-pointer hover:border-orange-400">
-                                    <div className="font-bold text-sm text-orange-400">{p.title}</div>
-                                    <div className="text-xs text-slate-400 line-clamp-1">{p.content?.substring(0, 30)}...</div>
-                                </div>
-                            )) : <div className="text-center text-slate-500 text-sm">無前置</div>}
+                            <div className="text-center text-sm text-orange-400 mb-2">⬅️ 前置觀念 ({rel.pre.length})</div>
+                            {rel.pre.length>0?rel.pre.map((p,i)=><div key={i} onClick={()=>setCenter(p)} className="card rounded-lg p-3 border border-orange-500/50 cursor-pointer hover:border-orange-400"><div className="font-bold text-sm text-orange-400">{p.title}</div></div>):<div className="text-center text-slate-500 text-sm">無</div>}
                         </div>
-                        
-                        {/* 中心概念 */}
                         <div className="text-center">
                             <div className="card rounded-xl p-6 border-2 border-blue-500 bg-blue-900/20">
                                 <div className="text-2xl mb-2">📍</div>
-                                <div className="font-bold text-lg text-blue-400">{centerConcept.title}</div>
-                                <div className="text-sm text-slate-300 mt-2">{centerConcept.content?.substring(0, 60)}...</div>
-                                <div className="text-xs text-slate-500 mt-2">{centerConcept.subject_code} · Ch.{centerConcept.chapter}</div>
+                                <div className="font-bold text-lg text-blue-400">{center.title}</div>
+                                <div className="text-sm text-slate-300 mt-2 line-clamp-3">{center.content?.substring(0,80)}...</div>
                             </div>
                         </div>
-                        
-                        {/* 衍生概念 */}
                         <div className="space-y-2">
-                            <div className="text-center text-sm text-slate-400 mb-2">衍生概念 ➡️</div>
-                            {relations.derivatives.length > 0 ? relations.derivatives.map((d, i) => (
-                                <div key={i} onClick={() => setCenterConcept(d)}
-                                    className="mind-map-node card rounded-lg p-3 border border-green-500/50 cursor-pointer hover:border-green-400">
-                                    <div className="font-bold text-sm text-green-400">{d.title}</div>
-                                    <div className="text-xs text-slate-400 line-clamp-1">{d.content?.substring(0, 30)}...</div>
-                                </div>
-                            )) : <div className="text-center text-slate-500 text-sm">無衍生</div>}
+                            <div className="text-center text-sm text-green-400 mb-2">衍生觀念 ➡️ ({rel.post.length})</div>
+                            {rel.post.length>0?rel.post.map((p,i)=><div key={i} onClick={()=>setCenter(p)} className="card rounded-lg p-3 border border-green-500/50 cursor-pointer hover:border-green-400"><div className="font-bold text-sm text-green-400">{p.title}</div></div>):<div className="text-center text-slate-500 text-sm">無</div>}
                         </div>
-                    </div>
-                </div>
-                
-                {/* 連結說明 */}
-                <div className="card rounded-xl p-4 border border-slate-700">
-                    <h4 className="font-semibold mb-2">📎 概念連結說明</h4>
-                    <div className="space-y-2">
-                        {conceptLinks.filter(l => l.target_id === centerConcept.id || l.source_id === centerConcept.id).map((l, i) => (
-                            <div key={i} className="text-sm flex items-center gap-2">
-                                <span className="text-orange-400">{concepts.find(c => c.id === l.source_id)?.title}</span>
-                                <span className="text-slate-500">→</span>
-                                <span className="text-green-400">{concepts.find(c => c.id === l.target_id)?.title}</span>
-                                {l.description && <span className="text-xs text-slate-400">({l.description})</span>}
-                            </div>
-                        ))}
                     </div>
                 </div>
             </div>
         );
     };
 
-    // === 測驗 ===
-    const QuizTab = () => {
-        if (quizMode === 'quiz') {
-            const q = questions[currentQ];
-            if (!q) return <Loading />;
-            const opts = Array.isArray(q.options) ? q.options : [];
-            
-            return (
-                <div className="max-w-3xl mx-auto space-y-4">
-                    <div className="flex justify-between items-center">
-                        <button onClick={() => { setQuizMode('menu'); setTimerOn(false); }} className="text-slate-400 hover:text-white">← 返回</button>
-                        <div className="flex items-center gap-4">
-                            {score.streak >= 3 && <span className="text-orange-400 bounce">🔥 {score.streak}</span>}
-                            <span className="text-green-400 font-bold">{score.correct}/{score.total}</span>
-                        </div>
-                    </div>
-                    
-                    <div className="card rounded-xl p-6 border border-slate-700">
-                        <div className="flex justify-between text-sm text-slate-400 mb-2">
-                            <span>題目 {currentQ + 1}/{questions.length}</span>
-                            <span className={timer <= 10 ? 'text-red-400 font-bold' : ''}>{timer}s</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-700 rounded-full mb-4">
-                            <div className={`h-1.5 rounded-full progress-bar ${timer <= 10 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${(timer / 30) * 100}%` }}></div>
-                        </div>
-                        
-                        <div className="mb-2"><span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">{q.subject || q.subject_id}</span></div>
-                        <h2 className="text-lg mb-6">{q.question_text}</h2>
-                        
-                        <div className="space-y-2">
-                            {opts.map((opt, i) => {
-                                const letter = opt.charAt(0);
-                                const isSelected = answer === letter;
-                                const isCorrect = result?.correct_answer === letter;
-                                const isWrong = isSelected && !result?.correct;
-                                let cls = 'border-slate-600 hover:border-blue-500';
-                                if (result) {
-                                    if (isCorrect) cls = 'border-green-500 bg-green-900/30 bounce';
-                                    else if (isWrong) cls = 'border-red-500 bg-red-900/30 shake';
-                                    else cls = 'border-slate-700 opacity-50';
-                                }
-                                return (
-                                    <button key={i} onClick={() => checkAnswer(letter)} disabled={!!result}
-                                        className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}>
-                                        <span className="font-bold mr-2">{letter}.</span>{opt.substring(2)}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        
-                        {result && (
-                            <div className={`mt-4 p-4 rounded-lg fade-in ${result.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}>
-                                <div className="font-bold">
-                                    {result.timeout ? '⏰ 時間到！' : result.correct ? '✅ 答對了！' : '❌ 答錯了'}
-                                    {!result.correct && <span className="ml-2 text-green-400">正確: {result.correct_answer}</span>}
-                                </div>
-                                {q.explanation && <p className="text-slate-300 text-sm mt-2">{q.explanation}</p>}
-                            </div>
-                        )}
-                        
-                        {result && (
-                            <button onClick={nextQuestion} className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold mt-4">
-                                {currentQ < questions.length - 1 ? '下一題 →' : '查看結果 🏆'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-        
-        if (quizMode === 'result') {
-            const pct = Math.round((score.correct / score.total) * 100);
-            const grade = pct >= 90 ? 'S' : pct >= 80 ? 'A' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : 'D';
-            const colors = { S: 'text-yellow-400', A: 'text-green-400', B: 'text-blue-400', C: 'text-orange-400', D: 'text-red-400' };
-            return (
-                <div className="max-w-md mx-auto card rounded-xl p-8 border border-slate-700 text-center">
-                    <div className="text-5xl mb-4">🎉</div>
-                    <h2 className="text-2xl font-bold">挑戰完成！</h2>
-                    <div className={`text-8xl font-bold my-6 ${colors[grade]}`}>{grade}</div>
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-green-400">{score.correct}</div><div className="text-xs text-slate-500">答對</div></div>
-                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold">{pct}%</div><div className="text-xs text-slate-500">正確率</div></div>
-                        <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-orange-400">{score.maxStreak}</div><div className="text-xs text-slate-500">最高連勝</div></div>
-                    </div>
-                    <div className="flex gap-3">
-                        <button onClick={() => setQuizMode('menu')} className="flex-1 py-2 bg-slate-700 rounded-lg">返回</button>
-                        <button onClick={loadQuestions} className="flex-1 py-2 bg-blue-600 rounded-lg">再玩</button>
-                    </div>
-                </div>
-            );
-        }
-        
-        // 測驗選單
-        return (
-            <div className="space-y-6">
-                <h3 className="font-semibold text-lg">🎯 知識挑戰</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="card rounded-xl p-6 border border-slate-700">
-                        <h4 className="font-semibold mb-4">選擇科目</h4>
-                        <div className="grid grid-cols-3 gap-2">
-                            <button onClick={() => setQuizSubject('all')} className={`p-2 rounded-lg text-sm ${quizSubject === 'all' ? 'bg-blue-600' : 'bg-slate-700'}`}>📚 全部</button>
-                            <button onClick={() => setQuizSubject('數學')} className={`p-2 rounded-lg text-sm ${quizSubject === '數學' ? 'bg-blue-600' : 'bg-slate-700'}`}>🔢 數學</button>
-                            <button onClick={() => setQuizSubject('國文')} className={`p-2 rounded-lg text-sm ${quizSubject === '國文' ? 'bg-blue-600' : 'bg-slate-700'}`}>📖 國文</button>
-                            <button onClick={() => setQuizSubject('英文')} className={`p-2 rounded-lg text-sm ${quizSubject === '英文' ? 'bg-blue-600' : 'bg-slate-700'}`}>🔤 英文</button>
-                            <button onClick={() => setQuizSubject('自然')} className={`p-2 rounded-lg text-sm ${quizSubject === '自然' ? 'bg-blue-600' : 'bg-slate-700'}`}>🔬 自然</button>
-                            <button onClick={() => setQuizSubject('社會')} className={`p-2 rounded-lg text-sm ${quizSubject === '社會' ? 'bg-blue-600' : 'bg-slate-700'}`}>🌍 社會</button>
-                        </div>
-                    </div>
-                    <div className="card rounded-xl p-6 border border-slate-700">
-                        <h4 className="font-semibold mb-4">題數</h4>
-                        <div className="flex gap-2 mb-4">
-                            {[5, 10, 15, 20].map(n => (
-                                <button key={n} onClick={() => setQuizCount(n)} className={`px-4 py-2 rounded-lg ${quizCount === n ? 'bg-green-600' : 'bg-slate-700'}`}>{n}</button>
-                            ))}
-                        </div>
-                        <button onClick={loadQuestions} className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-bold">🚀 開始挑戰</button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    return (
+    // AI認證
+    const AICert=()=>(
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold">📚 教育系統</h1>
-            
-            <div className="flex gap-2 flex-wrap">
-                <button onClick={() => { setTab('subjects'); setSelectedSubject(null); }} className={`px-4 py-2 rounded-lg ${tab === 'subjects' ? 'bg-blue-600' : 'bg-slate-700'}`}>📖 108課綱</button>
-                <button onClick={() => setTab('concepts')} className={`px-4 py-2 rounded-lg ${tab === 'concepts' ? 'bg-blue-600' : 'bg-slate-700'}`}>🧩 知識節點</button>
-                <button onClick={() => setTab('knowledge')} className={`px-4 py-2 rounded-lg ${tab === 'knowledge' ? 'bg-blue-600' : 'bg-slate-700'}`}>📝 詳解口訣</button>
-                <button onClick={() => setTab('mindmap')} className={`px-4 py-2 rounded-lg ${tab === 'mindmap' ? 'bg-blue-600' : 'bg-slate-700'}`}>🧠 心智圖</button>
-                <button onClick={() => setTab('quiz')} className={`px-4 py-2 rounded-lg ${tab === 'quiz' ? 'bg-blue-600' : 'bg-slate-700'}`}>🎯 測驗</button>
-            </div>
-            
-            {tab === 'subjects' && <SubjectsTab />}
-            {tab === 'concepts' && <ConceptsTab />}
-            {tab === 'knowledge' && <KnowledgeTab />}
-            {tab === 'mindmap' && <MindMapTab />}
-            {tab === 'quiz' && <QuizTab />}
-            
-            {/* 概念詳情 Modal */}
-            <Modal open={!!selectedConcept} onClose={() => setSelectedConcept(null)} title={selectedConcept?.title} wide>
-                {selectedConcept && (() => {
-                    const relations = getConceptRelations(selectedConcept.id);
-                    return (
-                        <div className="space-y-4">
-                            <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-blue-900/50 text-blue-400 rounded text-sm">{selectedConcept.subject_code}</span>
-                                <span className="px-2 py-1 bg-slate-700 rounded text-sm">Ch.{selectedConcept.chapter} - {selectedConcept.section}</span>
-                                <span className="px-2 py-1 bg-slate-700 rounded text-sm">難度 {selectedConcept.difficulty}</span>
-                                <span className="px-2 py-1 bg-slate-700 rounded text-sm">重要度 {selectedConcept.importance}</span>
-                            </div>
-                            
-                            <div className="card rounded-lg p-4 border border-slate-700">
-                                <h4 className="font-semibold mb-2">📖 內容</h4>
-                                <p className="text-slate-300 whitespace-pre-wrap">{selectedConcept.content}</p>
-                            </div>
-                            
-                            {selectedConcept.keywords && (
-                                <div>
-                                    <h4 className="font-semibold mb-2">🏷️ 關鍵字</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {JSON.parse(selectedConcept.keywords || '[]').map((k, i) => (
-                                            <span key={i} className="px-3 py-1 bg-blue-900/30 text-blue-400 rounded-full text-sm">{k}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="card rounded-lg p-4 border border-orange-500/30">
-                                    <h4 className="font-semibold text-orange-400 mb-2">⬅️ 前置觀念 ({relations.prerequisites.length})</h4>
-                                    {relations.prerequisites.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {relations.prerequisites.map((p, i) => (
-                                                <div key={i} className="text-sm p-2 bg-slate-800 rounded">{p.title}</div>
-                                            ))}
-                                        </div>
-                                    ) : <p className="text-slate-500 text-sm">無前置觀念</p>}
-                                </div>
-                                <div className="card rounded-lg p-4 border border-green-500/30">
-                                    <h4 className="font-semibold text-green-400 mb-2">➡️ 衍生觀念 ({relations.derivatives.length})</h4>
-                                    {relations.derivatives.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {relations.derivatives.map((d, i) => (
-                                                <div key={i} className="text-sm p-2 bg-slate-800 rounded">{d.title}</div>
-                                            ))}
-                                        </div>
-                                    ) : <p className="text-slate-500 text-sm">無衍生觀念</p>}
-                                </div>
-                            </div>
+            <h4 className="font-semibold">🤖 AI 認證課程模組 ({data.aiModules.length})</h4>
+            <div className="grid md:grid-cols-2 gap-4">
+                {data.aiModules.map((m,i)=>(
+                    <div key={i} onClick={()=>setModal({type:'aimodule',data:m})} className="card rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-blue-500">
+                        <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-blue-400">{m.module_name_zh||m.module_name}</h4>
+                            <span className="text-xs px-2 py-1 bg-slate-700 rounded">難度{m.difficulty}</span>
                         </div>
-                    );
-                })()}
-            </Modal>
+                        <p className="text-sm text-slate-400 mt-2 line-clamp-2">{m.description}</p>
+                        <div className="mt-3 flex justify-between items-center text-sm">
+                            <span className="text-slate-500">⏱️{m.estimated_hours}h</span>
+                            <span className="text-green-400">{data.aiLessons.filter(l=>l.module_id===m.module_id).length} 課程</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <h4 className="font-semibold">📚 課程列表 ({data.aiLessons.length})</h4>
+            <div className="space-y-2">
+                {data.aiLessons.slice(0,10).map((l,i)=>(
+                    <div key={i} onClick={()=>setModal({type:'ailesson',data:l})} className="card rounded-lg p-3 border border-slate-700 cursor-pointer hover:border-blue-500">
+                        <div className="flex justify-between"><span className="font-bold text-blue-400">{l.lesson_name_zh||l.lesson_name}</span><span className="text-xs text-slate-500">⏱️{l.estimated_minutes}min</span></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 術語庫
+    const Glossary=()=>(
+        <div className="space-y-4">
+            <p className="text-sm text-slate-400">AI 認證相關術語 ({data.glossary.length})</p>
+            <div className="grid md:grid-cols-2 gap-3">
+                {data.glossary.slice(0,20).map((g,i)=>(
+                    <div key={i} onClick={()=>setModal({type:'glossary',data:g})} className="card rounded-lg p-4 border border-slate-700 cursor-pointer hover:border-blue-500">
+                        <div className="flex justify-between items-start">
+                            <div><span className="font-bold text-blue-400">{g.term_zh}</span><span className="text-slate-400 text-sm ml-2">{g.term_en}</span></div>
+                            <span className="text-xs px-2 py-0.5 bg-slate-700 rounded">{g.category}</span>
+                        </div>
+                        <p className="text-sm text-slate-300 mt-2 line-clamp-2">{g.definition_zh}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 徽章成就
+    const Badges=()=>(
+        <div className="space-y-6">
+            <h4 className="font-semibold">🎖️ 徽章 ({data.badges.length})</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {data.badges.slice(0,16).map((b,i)=>(
+                    <div key={i} className="card rounded-lg p-4 border border-slate-700 text-center">
+                        <div className="text-4xl mb-2">{b.icon}</div>
+                        <div className="font-bold text-sm">{b.name}</div>
+                        <div className="text-xs text-slate-400 mt-1 line-clamp-2">{b.description}</div>
+                        <div className="text-xs text-green-400 mt-1">+{b.xp_reward} XP</div>
+                    </div>
+                ))}
+            </div>
+            <h4 className="font-semibold">🏆 成就 ({data.achievements.length})</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+                {data.achievements.map((a,i)=>(
+                    <div key={i} className="card rounded-lg p-3 border border-slate-700 flex items-center gap-3">
+                        <div className="text-3xl">{a.badge_icon}</div>
+                        <div><div className="font-bold">{a.name}</div><div className="text-xs text-slate-400">{a.description}</div><div className="text-xs text-yellow-400">+{a.points}點 · {a.rarity}</div></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    return(
+        <div className="space-y-4">
+            <h1 className="text-2xl font-bold">📚 教育系統</h1>
+            <Tab tabs={tabs} active={tab} set={setTab}/>
+            {tab==='quiz'&&<Quiz/>}
+            {tab==='108'&&<Curriculum108/>}
+            {tab==='concepts'&&<Concepts/>}
+            {tab==='knowledge'&&<Knowledge/>}
+            {tab==='mindmap'&&<MindMap/>}
+            {tab==='ai'&&<AICert/>}
+            {tab==='glossary'&&<Glossary/>}
+            {tab==='badges'&&<Badges/>}
             
-            {/* 詳細知識 Modal */}
-            <Modal open={!!selectedKnowledge} onClose={() => setSelectedKnowledge(null)} title={selectedKnowledge?.topic} wide>
-                {selectedKnowledge && (
+            {/* Modals */}
+            <Modal open={modal?.type==='concept'} onClose={()=>setModal(null)} title={modal?.data?.title} wide>
+                {modal?.data&&(
                     <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                            <span className="px-2 py-1 bg-blue-900/50 text-blue-400 rounded text-sm">{selectedKnowledge.subject_name}</span>
-                            <span className="px-2 py-1 bg-slate-700 rounded text-sm">{selectedKnowledge.chapter}</span>
-                            <span className="px-2 py-1 bg-slate-700 rounded text-sm">難度 {selectedKnowledge.difficulty}</span>
+                            <span className="px-2 py-1 bg-blue-900/50 text-blue-400 rounded text-sm">{modal.data.subject_code}</span>
+                            <span className="px-2 py-1 bg-slate-700 rounded text-sm">Ch.{modal.data.chapter}</span>
+                            <span className="px-2 py-1 bg-slate-700 rounded text-sm">難度{modal.data.difficulty}</span>
                         </div>
-                        
-                        {selectedKnowledge.detailed_explanation && (
-                            <div className="card rounded-lg p-4 border border-purple-500/30">
-                                <h4 className="font-semibold text-purple-400 mb-2">📖 詳細解釋</h4>
-                                <div className="text-slate-300 whitespace-pre-wrap text-sm">{selectedKnowledge.detailed_explanation}</div>
-                            </div>
-                        )}
-                        
-                        {selectedKnowledge.examples && (
-                            <div className="card rounded-lg p-4 border border-green-500/30">
-                                <h4 className="font-semibold text-green-400 mb-2">📝 範例</h4>
-                                <div className="text-slate-300 whitespace-pre-wrap text-sm">{selectedKnowledge.examples}</div>
-                            </div>
-                        )}
-                        
-                        {selectedKnowledge.mnemonics && (
-                            <div className="card rounded-lg p-4 border border-yellow-500/30">
-                                <h4 className="font-semibold text-yellow-400 mb-2">💡 記憶口訣</h4>
-                                <div className="text-slate-300 text-lg">{selectedKnowledge.mnemonics}</div>
-                            </div>
-                        )}
-                        
-                        {selectedKnowledge.common_mistakes && (
-                            <div className="card rounded-lg p-4 border border-red-500/30">
-                                <h4 className="font-semibold text-red-400 mb-2">⚠️ 常見錯誤</h4>
-                                <div className="text-slate-300 whitespace-pre-wrap text-sm">{selectedKnowledge.common_mistakes}</div>
-                            </div>
-                        )}
-                        
-                        {selectedKnowledge.related_topics && (
-                            <div>
-                                <h4 className="font-semibold mb-2">🔗 相關主題</h4>
-                                <p className="text-slate-400">{selectedKnowledge.related_topics}</p>
-                            </div>
-                        )}
+                        <div className="card rounded-lg p-4 border border-slate-700"><h4 className="font-semibold mb-2">📖 內容</h4><p className="text-slate-300 whitespace-pre-wrap">{modal.data.content}</p></div>
+                        {modal.data.keywords&&<div><h4 className="font-semibold mb-2">🏷️ 關鍵字</h4><div className="flex flex-wrap gap-2">{JSON.parse(modal.data.keywords||'[]').map((k,i)=><span key={i} className="px-3 py-1 bg-blue-900/30 text-blue-400 rounded-full text-sm">{k}</span>)}</div></div>}
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="card rounded-lg p-4 border border-orange-500/30"><h4 className="font-semibold text-orange-400 mb-2">⬅️ 前置觀念</h4>{modal.rel?.pre?.length>0?<div className="space-y-2">{modal.rel.pre.map((p,i)=><div key={i} className="text-sm p-2 bg-slate-800 rounded">{p.title}</div>)}</div>:<p className="text-slate-500 text-sm">無</p>}</div>
+                            <div className="card rounded-lg p-4 border border-green-500/30"><h4 className="font-semibold text-green-400 mb-2">➡️ 衍生觀念</h4>{modal.rel?.post?.length>0?<div className="space-y-2">{modal.rel.post.map((p,i)=><div key={i} className="text-sm p-2 bg-slate-800 rounded">{p.title}</div>)}</div>:<p className="text-slate-500 text-sm">無</p>}</div>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+            <Modal open={modal?.type==='knowledge'} onClose={()=>setModal(null)} title={modal?.data?.topic} wide>
+                {modal?.data&&(
+                    <div className="space-y-4">
+                        {modal.data.detailed_explanation&&<div className="card rounded-lg p-4 border border-purple-500/30"><h4 className="font-semibold text-purple-400 mb-2">📖 詳細解釋</h4><div className="text-slate-300 whitespace-pre-wrap text-sm">{modal.data.detailed_explanation}</div></div>}
+                        {modal.data.examples&&<div className="card rounded-lg p-4 border border-green-500/30"><h4 className="font-semibold text-green-400 mb-2">📝 範例</h4><div className="text-slate-300 whitespace-pre-wrap text-sm">{modal.data.examples}</div></div>}
+                        {modal.data.mnemonics&&<div className="card rounded-lg p-4 border border-yellow-500/30"><h4 className="font-semibold text-yellow-400 mb-2">💡 記憶口訣</h4><div className="text-slate-300 text-lg">{modal.data.mnemonics}</div></div>}
+                        {modal.data.common_mistakes&&<div className="card rounded-lg p-4 border border-red-500/30"><h4 className="font-semibold text-red-400 mb-2">⚠️ 常見錯誤</h4><div className="text-slate-300 whitespace-pre-wrap text-sm">{modal.data.common_mistakes}</div></div>}
+                    </div>
+                )}
+            </Modal>
+            <Modal open={modal?.type==='ailesson'} onClose={()=>setModal(null)} title={modal?.data?.lesson_name_zh||modal?.data?.lesson_name} wide>
+                {modal?.data&&<div className="prose prose-invert max-w-none"><div className="text-sm text-slate-400 mb-4">⏱️ {modal.data.estimated_minutes} 分鐘</div><div className="whitespace-pre-wrap text-sm leading-relaxed">{modal.data.content}</div></div>}
+            </Modal>
+            <Modal open={modal?.type==='glossary'} onClose={()=>setModal(null)} title={`${modal?.data?.term_zh} (${modal?.data?.term_en})`}>
+                {modal?.data&&(
+                    <div className="space-y-4">
+                        <div className="card rounded-lg p-4 border border-slate-700"><h4 className="font-semibold mb-2">📖 定義</h4><p className="text-slate-300">{modal.data.definition_zh}</p><p className="text-slate-400 text-sm mt-2">{modal.data.definition}</p></div>
+                        {modal.data.examples&&<div className="card rounded-lg p-4 border border-green-500/30"><h4 className="font-semibold text-green-400 mb-2">📝 範例</h4><p className="text-slate-300">{modal.data.examples}</p></div>}
                     </div>
                 )}
             </Modal>
@@ -684,104 +564,283 @@ const Education = () => {
     );
 };
 
-// === 虛擬地球 (簡化版) ===
-const VirtualEarth = () => {
-    const [player, setPlayer] = useState({ hp: 100, maxHp: 100, gold: 500, exp: 0, level: 1, completed: [] });
-    const [currentQuest, setCurrentQuest] = useState(null);
-    const [questResult, setQuestResult] = useState(null);
+// ========== 遊戲系統 ==========
+const Game=()=>{
+    const [tab,setTab]=useState('play');
+    const [data,setData]=useState({creatures:[],skills:[],areas:[],bosses:[],npcs:[],quests:[],items:[],shopItems:[],scamCases:[],achievements:[],dialogues:[]});
+    const [loading,setLoading]=useState(true);
+    const [modal,setModal]=useState(null);
+    const [player,setPlayer]=useState({hp:100,maxHp:100,gold:500,exp:0,level:1,completed:[]});
+    const [currentQuest,setCurrentQuest]=useState(null);
+    const [questResult,setQuestResult]=useState(null);
 
-    const scenarios = [
-        { id: 'S001', title: '神秘投資機會', difficulty: '簡單', description: '你收到訊息：「獨家內線！保證報酬50%！只限今天！」', options: [{ id: 'A', text: '立即匯款', correct: false, feedback: '❌ 「保證獲利」是最大警訊！' }, { id: 'B', text: '查證身份', correct: true, feedback: '✅ 正確！永遠先查證。' }], exp: 100, gold: 50 },
-        { id: 'S002', title: '假冒銀行', difficulty: '簡單', description: '「我是銀行風控，帳戶異常，請提供密碼驗證。」', options: [{ id: 'A', text: '提供密碼', correct: false, feedback: '❌ 銀行絕不要密碼！' }, { id: 'B', text: '掛斷自打客服', correct: true, feedback: '✅ 正確！自己撥官方電話。' }], exp: 100, gold: 50 },
-        { id: 'S003', title: '網購超低價', difficulty: '中等', description: '名牌包1/10價格，要私下轉帳。', options: [{ id: 'A', text: '匯款', correct: false, feedback: '❌ 私下轉帳沒保障！' }, { id: 'B', text: '用蝦皮交易', correct: true, feedback: '✅ 使用有保障的平台。' }], exp: 150, gold: 80 },
-        { id: 'S004', title: '交友借錢', difficulty: '困難', description: '網友說媽媽住院借5萬。', options: [{ id: 'A', text: '借錢', correct: false, feedback: '❌ 殺豬盤詐騙！' }, { id: 'B', text: '要求視訊', correct: true, feedback: '✅ 詐騙者會拒絕視訊。' }], exp: 200, gold: 120 },
-        { id: 'S005', title: '中獎簡訊', difficulty: '簡單', description: '「抽中iPhone！付399運費領取！」', options: [{ id: 'A', text: '付款', correct: false, feedback: '❌ 預付費詐騙！' }, { id: 'B', text: '確認有無參加', correct: true, feedback: '✅ 沒參加不可能中獎。' }], exp: 80, gold: 40 },
+    useEffect(()=>{
+        setLoading(true);
+        Promise.all([
+            fetch(`${API}/api/v1/db/ve/table/e18k_creatures_real?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_skills?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_areas?limit=20`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_bosses?limit=10`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_npcs?limit=30`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_quests?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_items?limit=100`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_shop_items?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_scam_cases?limit=100`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_achievements?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+            fetch(`${API}/api/v1/db/ve/table/e18k_dialogue_lines?limit=50`).then(r=>r.json()).catch(()=>({data:[]})),
+        ]).then(([cre,ski,are,bos,npc,que,itm,shp,scm,ach,dlg])=>{
+            setData({creatures:cre.data||[],skills:ski.data||[],areas:are.data||[],bosses:bos.data||[],npcs:npc.data||[],quests:que.data||[],items:itm.data||[],shopItems:shp.data||[],scamCases:scm.data||[],achievements:ach.data||[],dialogues:dlg.data||[]});
+            setLoading(false);
+        });
+    },[]);
+
+    const scenarios=[
+        {id:'S001',title:'神秘投資機會',diff:'簡單',desc:'你收到訊息：「獨家內線！保證報酬50%！只限今天！」',options:[{id:'A',text:'立即匯款',correct:false,fb:'❌「保證獲利」是最大警訊！'},{id:'B',text:'查證身份',correct:true,fb:'✅正確！永遠先查證。'}],exp:100,gold:50},
+        {id:'S002',title:'假冒銀行',diff:'簡單',desc:'「我是銀行風控，帳戶異常，請提供密碼驗證。」',options:[{id:'A',text:'提供密碼',correct:false,fb:'❌銀行絕不要密碼！'},{id:'B',text:'掛斷自打客服',correct:true,fb:'✅正確！自己撥官方電話。'}],exp:100,gold:50},
+        {id:'S003',title:'網購超低價',diff:'中等',desc:'名牌包1/10價格，要私下轉帳。',options:[{id:'A',text:'匯款',correct:false,fb:'❌私下轉帳沒保障！'},{id:'B',text:'用平台交易',correct:true,fb:'✅使用有保障的平台。'}],exp:150,gold:80},
+        {id:'S004',title:'交友借錢',diff:'困難',desc:'網友說媽媽住院借5萬。',options:[{id:'A',text:'借錢',correct:false,fb:'❌殺豬盤詐騙！'},{id:'B',text:'要求視訊',correct:true,fb:'✅詐騙者會拒絕視訊。'}],exp:200,gold:120},
+        {id:'S005',title:'中獎簡訊',diff:'簡單',desc:'「抽中iPhone！付399運費領取！」',options:[{id:'A',text:'付款',correct:false,fb:'❌預付費詐騙！'},{id:'B',text:'確認有無參加',correct:true,fb:'✅沒參加不可能中獎。'}],exp:80,gold:40},
     ];
-
-    const startQuest = (q) => { setCurrentQuest(q); setQuestResult(null); };
-    const answerQuest = (opt) => {
+    const startQuest=(q)=>{setCurrentQuest(q);setQuestResult(null);setTab('playing');};
+    const answerQuest=(opt)=>{
         setQuestResult(opt);
-        if (opt.correct) {
-            setPlayer(p => ({ ...p, exp: p.exp + currentQuest.exp, gold: p.gold + currentQuest.gold, level: Math.floor((p.exp + currentQuest.exp) / 300) + 1, completed: [...p.completed, currentQuest.id] }));
-        } else {
-            setPlayer(p => ({ ...p, hp: Math.max(0, p.hp - 20), exp: p.exp + 20 }));
-        }
+        if(opt.correct)setPlayer(p=>({...p,exp:p.exp+currentQuest.exp,gold:p.gold+currentQuest.gold,level:Math.floor((p.exp+currentQuest.exp)/300)+1,completed:[...p.completed,currentQuest.id]}));
+        else setPlayer(p=>({...p,hp:Math.max(0,p.hp-20),exp:p.exp+20}));
     };
 
-    if (currentQuest) {
-        return (
+    const elemColors={火:'text-red-400',水:'text-blue-400',草:'text-green-400',雷:'text-yellow-400',光:'text-amber-300',暗:'text-purple-400',地:'text-orange-400',風:'text-cyan-400',冰:'text-sky-300'};
+    const rarityColors={5:'text-yellow-400',4:'text-purple-400',3:'text-blue-400',2:'text-green-400',1:'text-slate-400'};
+
+    if(loading)return<Loading/>;
+
+    const tabs=[
+        {id:'play',icon:'🎮',name:'防詐挑戰'},
+        {id:'creatures',icon:'🐾',name:`怪物(${data.creatures.length})`},
+        {id:'skills',icon:'⚔️',name:`技能(${data.skills.length})`},
+        {id:'areas',icon:'🗺️',name:`區域(${data.areas.length})`},
+        {id:'bosses',icon:'👹',name:`BOSS(${data.bosses.length})`},
+        {id:'npcs',icon:'👥',name:`NPC(${data.npcs.length})`},
+        {id:'quests',icon:'📜',name:`任務(${data.quests.length})`},
+        {id:'items',icon:'🎒',name:`道具(${data.items.length})`},
+        {id:'shop',icon:'🏪',name:`商店(${data.shopItems.length})`},
+        {id:'scam',icon:'🚨',name:`詐騙案例(${data.scamCases.length})`},
+    ];
+
+    // 遊戲中
+    if(tab==='playing'&&currentQuest){
+        return(
             <div className="max-w-3xl mx-auto space-y-4">
-                <button onClick={() => setCurrentQuest(null)} className="text-slate-400 hover:text-white">← 返回</button>
-                <div className="card rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="bg-gradient-to-r from-red-600 to-orange-600 p-4">
-                        <h2 className="font-bold text-lg">🚨 {currentQuest.title}</h2>
+                <button onClick={()=>setTab('play')} className="text-slate-400 hover:text-white">← 返回</button>
+                <div className="card rounded-xl p-4 border border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">🧙</div>
+                        <div><div className="font-bold">Lv.{player.level}</div><div className="text-xs text-slate-400">{player.completed.length}/5 完成</div></div>
                     </div>
+                    <div className="flex gap-4 text-sm"><span className="text-red-400">❤️{player.hp}</span><span className="text-yellow-400">💰{player.gold}</span><span className="text-green-400">⭐{player.exp}</span></div>
+                </div>
+                <div className="card rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="bg-gradient-to-r from-red-600 to-orange-600 p-4"><h2 className="font-bold text-lg">🚨 {currentQuest.title}</h2></div>
                     <div className="p-6">
-                        <div className="bg-slate-900/50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500">
-                            <p className="text-lg">{currentQuest.description}</p>
-                        </div>
+                        <div className="bg-slate-900/50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500"><p className="text-lg">{currentQuest.desc}</p></div>
                         <div className="space-y-2">
-                            {currentQuest.options?.map((opt, i) => {
-                                const isSelected = questResult?.id === opt.id;
-                                let cls = 'border-slate-600 hover:border-blue-500';
-                                if (questResult) {
-                                    if (opt.correct) cls = 'border-green-500 bg-green-900/30';
-                                    else if (isSelected) cls = 'border-red-500 bg-red-900/30 shake';
-                                    else cls = 'border-slate-700 opacity-50';
-                                }
-                                return (
-                                    <button key={i} onClick={() => !questResult && answerQuest(opt)} disabled={!!questResult}
-                                        className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}>
-                                        <span className="font-bold text-blue-400 mr-2">{opt.id}.</span>{opt.text}
-                                    </button>
-                                );
+                            {currentQuest.options?.map((opt,i)=>{
+                                const sel=questResult?.id===opt.id;
+                                let cls='border-slate-600 hover:border-blue-500';
+                                if(questResult){if(opt.correct)cls='border-green-500 bg-green-900/30';else if(sel)cls='border-red-500 bg-red-900/30 shake';else cls='border-slate-700 opacity-50';}
+                                return<button key={i} onClick={()=>!questResult&&answerQuest(opt)} disabled={!!questResult} className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}><span className="font-bold text-blue-400 mr-2">{opt.id}.</span>{opt.text}</button>;
                             })}
                         </div>
-                        {questResult && (
-                            <div className={`mt-4 p-4 rounded-lg fade-in ${questResult.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}>
-                                <p>{questResult.feedback}</p>
-                                {questResult.correct && <div className="mt-2 text-sm">🏆 +{currentQuest.exp} EXP | 💰 +{currentQuest.gold}</div>}
-                            </div>
-                        )}
-                        {questResult && <button onClick={() => setCurrentQuest(null)} className="w-full py-2 bg-blue-600 rounded-lg mt-4">返回</button>}
+                        {questResult&&<div className={`mt-4 p-4 rounded-lg fade ${questResult.correct?'bg-green-900/30 border border-green-600':'bg-red-900/30 border border-red-600'}`}><p>{questResult.fb}</p>{questResult.correct&&<div className="mt-2 text-sm">🏆+{currentQuest.exp} EXP | 💰+{currentQuest.gold}</div>}</div>}
+                        {questResult&&<button onClick={()=>setTab('play')} className="w-full py-2 bg-blue-600 rounded-lg mt-4">返回</button>}
                     </div>
                 </div>
             </div>
         );
     }
 
-    return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">🌍 虛擬地球 - E18K 防詐遊戲</h1>
+    // 怪物列表
+    const Creatures=()=>(
+        <div className="space-y-4">
+            <p className="text-sm text-slate-400">語氣獸圖鑑 (共{data.creatures.length}隻)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {data.creatures.slice(0,24).map((c,i)=>(
+                    <div key={i} onClick={()=>setModal({type:'creature',data:c})} className="card rounded-lg p-4 border border-slate-700 cursor-pointer hover:border-blue-500 text-center">
+                        <div className="text-4xl mb-2">🐾</div>
+                        <div className={`font-bold ${rarityColors[c.rarity]}`}>{'★'.repeat(c.rarity)}</div>
+                        <div className="font-bold">{c.name}</div>
+                        <div className={`text-sm ${elemColors[c.element]||'text-slate-400'}`}>{c.element}屬性</div>
+                        <div className="text-xs text-slate-500 mt-1">HP:{c.base_hp} ATK:{c.base_atk}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 技能列表
+    const Skills=()=>(
+        <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-3">
+                {data.skills.slice(0,20).map((s,i)=>(
+                    <div key={i} className="card rounded-lg p-3 border border-slate-700">
+                        <div className="flex justify-between items-start">
+                            <div className="font-bold text-blue-400">{s.skill_name}</div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${s.skill_type==='attack'?'bg-red-900/50 text-red-400':'bg-blue-900/50 text-blue-400'}`}>{s.skill_type}</span>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-1">{s.description}</p>
+                        <div className="mt-2 flex gap-3 text-xs text-slate-500">
+                            <span>威力:{s.base_power}</span><span>命中:{s.accuracy}</span><span>MP:{s.mp_cost}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 區域
+    const Areas=()=>(
+        <div className="grid md:grid-cols-2 gap-4">
+            {data.areas.map((a,i)=>(
+                <div key={i} className="card rounded-xl p-4 border border-slate-700">
+                    <h3 className="font-bold text-blue-400 text-lg">{a.name}</h3>
+                    <p className="text-sm text-slate-400 mt-1">{a.description}</p>
+                    <div className="mt-2 flex gap-3 text-xs"><span className="text-yellow-400">Lv.{a.min_level}+</span><span className="text-slate-500">{a.terrain}</span></div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // BOSS
+    const Bosses=()=>(
+        <div className="space-y-4">
+            {data.bosses.map((b,i)=>(
+                <div key={i} className="card rounded-xl p-4 border border-red-500/50">
+                    <div className="flex justify-between items-start">
+                        <div><h3 className="font-bold text-red-400 text-xl">👹 {b.name}</h3><p className="text-sm text-slate-400 mt-1">{b.description}</p></div>
+                        <span className="text-xs px-2 py-1 bg-red-900/50 text-red-400 rounded">Lv.{b.level}</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-4 gap-2 text-center text-sm">
+                        <div><div className="text-red-400 font-bold">{b.hp}</div><div className="text-xs text-slate-500">HP</div></div>
+                        <div><div className="text-orange-400 font-bold">{b.atk}</div><div className="text-xs text-slate-500">ATK</div></div>
+                        <div><div className="text-blue-400 font-bold">{b.def}</div><div className="text-xs text-slate-500">DEF</div></div>
+                        <div><div className="text-yellow-400 font-bold">{b.boss_type}</div><div className="text-xs text-slate-500">屬性</div></div>
+                    </div>
+                    {b.skills&&<div className="mt-2 text-xs text-slate-400">技能: {JSON.parse(b.skills||'[]').join(', ')}</div>}
+                </div>
+            ))}
+        </div>
+    );
+
+    // NPC
+    const NPCs=()=>(
+        <div className="grid md:grid-cols-2 gap-4">
+            {data.npcs.slice(0,12).map((n,i)=>(
+                <div key={i} className="card rounded-lg p-4 border border-slate-700 flex items-start gap-3">
+                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-xl">👤</div>
+                    <div><div className="font-bold text-blue-400">{n.name}</div><div className="text-xs text-slate-500">{n.role} · {n.location}</div><div className="text-sm text-slate-400 mt-1">{n.dialogue_default}</div></div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // 任務
+    const Quests=()=>(
+        <div className="space-y-3">
+            {data.quests.slice(0,15).map((q,i)=>(
+                <div key={i} className="card rounded-lg p-4 border border-slate-700">
+                    <div className="flex justify-between items-start">
+                        <div><span className={`text-xs px-2 py-0.5 rounded mr-2 ${q.quest_type==='main'?'bg-yellow-900/50 text-yellow-400':'bg-slate-700 text-slate-400'}`}>{q.quest_type}</span><span className="font-bold text-blue-400">{q.title}</span></div>
+                        <span className="text-xs text-slate-500">Ch.{q.chapter}</span>
+                    </div>
+                    <p className="text-sm text-slate-400 mt-2">{q.description}</p>
+                    {q.dialogue&&<div className="mt-2 text-xs text-green-400 bg-green-900/20 p-2 rounded">💬 {q.dialogue}</div>}
+                </div>
+            ))}
+        </div>
+    );
+
+    // 道具
+    const Items=()=>(
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {data.items.slice(0,24).map((it,i)=>(
+                <div key={i} className="card rounded-lg p-3 border border-slate-700 text-center">
+                    <div className="text-3xl mb-1">{it.item_name?.includes('藥水')?'🧪':it.item_name?.includes('球')?'⚪':'📦'}</div>
+                    <div className="font-bold text-sm">{it.item_name}</div>
+                    <div className="text-xs text-slate-400 line-clamp-2">{it.description}</div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // 商店
+    const Shop=()=>(
+        <div className="grid md:grid-cols-2 gap-4">
+            {data.shopItems.slice(0,12).map((it,i)=>(
+                <div key={i} className="card rounded-lg p-4 border border-slate-700 flex items-start gap-3">
+                    <div className="text-3xl">{it.item_name?.includes('藥水')?'🧪':it.item_name?.includes('劍')?'⚔️':it.item_name?.includes('盾')?'🛡️':'📦'}</div>
+                    <div className="flex-1">
+                        <div className="font-bold text-yellow-400">{it.item_name}</div>
+                        <div className="text-sm text-slate-400">{it.description}</div>
+                        <div className="mt-2 flex justify-between items-center">
+                            <span className="text-yellow-500 font-bold">💰{it.price_gold}</span>
+                            <span className="text-xs text-slate-500">Lv.{it.level_required}+</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // 詐騙案例
+    const ScamCases=()=>(
+        <div className="space-y-4">
+            <p className="text-sm text-slate-400">真實詐騙案例教學 ({data.scamCases.length})</p>
+            <div className="grid md:grid-cols-2 gap-4">
+                {data.scamCases.slice(0,10).map((c,i)=>(
+                    <div key={i} className="card rounded-lg p-4 border border-red-500/30">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-400 rounded">{c.category}</span>
+                            <span className="text-xs text-slate-500">{c.id}</span>
+                        </div>
+                        <h4 className="font-bold text-red-400">{c.title}</h4>
+                        <p className="text-sm text-slate-400 mt-2 line-clamp-2">{c.description}</p>
+                        <div className="mt-2 text-xs text-green-400">✅ {c.prevention}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 防詐挑戰
+    const Play=()=>(
+        <div className="space-y-4">
             <div className="card rounded-xl p-4 border border-slate-700">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-xl">🧙</div>
-                        <div>
-                            <div className="font-bold">Lv.{player.level} 防詐勇士</div>
-                            <div className="text-sm text-slate-400">{player.completed.length}/{scenarios.length} 完成</div>
-                        </div>
+                        <div><div className="font-bold">Lv.{player.level} 防詐勇士</div><div className="text-sm text-slate-400">{player.completed.length}/5 關卡完成</div></div>
                     </div>
                     <div className="flex gap-4 text-sm">
-                        <span className="text-red-400">❤️ {player.hp}</span>
-                        <span className="text-yellow-400">💰 {player.gold}</span>
-                        <span className="text-green-400">⭐ {player.exp}</span>
+                        <Stat icon="❤️" value={player.hp} color="text-red-400"/>
+                        <Stat icon="💰" value={player.gold} color="text-yellow-400"/>
+                        <Stat icon="⭐" value={player.exp} color="text-green-400"/>
                     </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div><div className="text-xs text-slate-500 mb-1">HP</div><div className="h-2 bg-slate-700 rounded-full"><div className="h-2 bg-red-500 rounded-full bar" style={{width:`${player.hp/player.maxHp*100}%`}}></div></div></div>
+                    <div><div className="text-xs text-slate-500 mb-1">EXP</div><div className="h-2 bg-slate-700 rounded-full"><div className="h-2 bg-green-500 rounded-full bar" style={{width:`${(player.exp%300)/3}%`}}></div></div></div>
                 </div>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {scenarios.map((s, i) => {
-                    const done = player.completed.includes(s.id);
-                    return (
-                        <div key={i} className={`card rounded-xl p-4 border ${done ? 'border-green-600' : 'border-slate-700'}`}>
-                            <div className="flex justify-between mb-2">
-                                <h3 className="font-bold text-blue-400">{s.title}</h3>
-                                {done && <span className="text-green-400">✅</span>}
-                            </div>
-                            <p className="text-sm text-slate-400 line-clamp-2">{s.description}</p>
+                {scenarios.map((s,i)=>{
+                    const done=player.completed.includes(s.id);
+                    return(
+                        <div key={i} className={`card rounded-xl p-4 border ${done?'border-green-600':'border-slate-700'}`}>
+                            <div className="flex justify-between mb-2"><h3 className="font-bold text-blue-400">{s.title}</h3>{done&&<span className="text-green-400">✅</span>}</div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${s.diff==='簡單'?'bg-green-900/50 text-green-400':s.diff==='中等'?'bg-yellow-900/50 text-yellow-400':'bg-red-900/50 text-red-400'}`}>{s.diff}</span>
+                            <p className="text-sm text-slate-400 mt-2 line-clamp-2">{s.desc}</p>
                             <div className="mt-3 flex justify-between items-center">
                                 <span className="text-xs text-slate-500">🏆{s.exp} 💰{s.gold}</span>
-                                <button onClick={() => startQuest(s)} className={`px-3 py-1 rounded text-sm ${done ? 'bg-slate-700' : 'bg-blue-600'}`}>{done ? '重玩' : '挑戰'}</button>
+                                <button onClick={()=>startQuest(s)} className={`px-3 py-1 rounded text-sm ${done?'bg-slate-700':'bg-blue-600'}`}>{done?'重玩':'挑戰'}</button>
                             </div>
                         </div>
                     );
@@ -789,27 +848,57 @@ const VirtualEarth = () => {
             </div>
         </div>
     );
-};
 
-// === App ===
-const App = () => {
-    const [page, setPage] = useState('home');
-    return (
-        <div className="min-h-screen">
-            <Navbar page={page} setPage={setPage} />
-            <main className="max-w-6xl mx-auto px-4 py-6">
-                {page === 'home' && <Home setPage={setPage} />}
-                {page === 'edu' && <Education />}
-                {page === 've' && <VirtualEarth />}
-            </main>
-            <footer className="text-center py-4 text-slate-500 text-sm border-t border-slate-800">
-                <p>VE-System v1.0 | 北斗七星文創數位有限公司 | 道的1%原則</p>
-            </footer>
+    return(
+        <div className="space-y-4">
+            <h1 className="text-2xl font-bold">🎮 E18K 遊戲系統</h1>
+            <Tab tabs={tabs} active={tab} set={setTab}/>
+            {tab==='play'&&<Play/>}
+            {tab==='creatures'&&<Creatures/>}
+            {tab==='skills'&&<Skills/>}
+            {tab==='areas'&&<Areas/>}
+            {tab==='bosses'&&<Bosses/>}
+            {tab==='npcs'&&<NPCs/>}
+            {tab==='quests'&&<Quests/>}
+            {tab==='items'&&<Items/>}
+            {tab==='shop'&&<Shop/>}
+            {tab==='scam'&&<ScamCases/>}
+            
+            <Modal open={modal?.type==='creature'} onClose={()=>setModal(null)} title={modal?.data?.name}>
+                {modal?.data&&(
+                    <div className="space-y-4">
+                        <div className="text-center"><div className="text-6xl mb-2">🐾</div><div className={`font-bold text-xl ${rarityColors[modal.data.rarity]}`}>{'★'.repeat(modal.data.rarity)} {modal.data.name}</div><div className={elemColors[modal.data.element]}>{modal.data.element}屬性</div></div>
+                        <div className="card rounded-lg p-4 border border-slate-700"><p className="text-slate-300 italic">"{modal.data.quote}"</p><p className="text-slate-400 text-sm mt-2">{modal.data.lore}</p></div>
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                            <div className="card rounded-lg p-2 border border-slate-700"><div className="text-red-400 font-bold">{modal.data.base_hp}</div><div className="text-xs text-slate-500">HP</div></div>
+                            <div className="card rounded-lg p-2 border border-slate-700"><div className="text-orange-400 font-bold">{modal.data.base_atk}</div><div className="text-xs text-slate-500">ATK</div></div>
+                            <div className="card rounded-lg p-2 border border-slate-700"><div className="text-blue-400 font-bold">{modal.data.base_def}</div><div className="text-xs text-slate-500">DEF</div></div>
+                            <div className="card rounded-lg p-2 border border-slate-700"><div className="text-green-400 font-bold">{modal.data.base_spd}</div><div className="text-xs text-slate-500">SPD</div></div>
+                        </div>
+                        {modal.data.signature_skill&&<div className="card rounded-lg p-4 border border-yellow-500/30"><h4 className="font-semibold text-yellow-400 mb-1">⚡ {modal.data.signature_skill}</h4><p className="text-slate-300 text-sm">{modal.data.signature_desc}</p></div>}
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// App
+const App=()=>{
+    const [page,setPage]=useState('home');
+    return(
+        <div className="min-h-screen">
+            <Nav page={page} setPage={setPage}/>
+            <main className="max-w-6xl mx-auto px-4 py-6">
+                {page==='home'&&<Home setPage={setPage}/>}
+                {page==='edu'&&<Education/>}
+                {page==='game'&&<Game/>}
+            </main>
+            <footer className="text-center py-4 text-slate-500 text-sm border-t border-slate-800">VE-System v1.0 | 北斗七星文創數位 | 道的1%原則</footer>
+        </div>
+    );
+};
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
