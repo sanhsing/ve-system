@@ -1,37 +1,52 @@
-# VE-System 虛擾地球系統
+# VE-System v4 部署包
 
-## 快速部署 (Render)
+## 後端 API
 
-1. Fork 或上傳此 repo 到 GitHub
-2. 登入 [Render](https://render.com)
-3. New → Web Service → 連結 GitHub repo
-4. 自動偵測 `render.yaml` 配置
-5. Deploy!
+### 部署到 Render
+1. Fork 或上傳到 GitHub
+2. 在 Render 建立 Web Service
+3. 連接 GitHub repo
+4. 自動部署
 
-## API 端點
+### 本地測試
+```bash
+pip install -r requirements.txt
+python app.py
+```
 
-| 端點 | 說明 |
-|------|------|
-| `GET /` | 系統資訊 |
-| `GET /health` | 健康檢查 |
-| `GET /health/ready` | 就緒檢查 (含DB狀態) |
-| `GET /api/v1/status` | 系統狀態總覽 |
-| `GET /api/v1/qixing` | 北斗七星狀態 |
-| `GET /api/v1/db/<db>/tables` | 列出資料表 |
-| `GET /api/v1/db/<db>/table/<table>` | 查詢資料 |
+### API 端點
 
-## 資料庫 (9庫)
+**認證**
+- POST /api/v1/auth/register - 註冊
+- POST /api/v1/auth/login - 登入
+- POST /api/v1/auth/logout - 登出
 
-- meta.db - 元資料
-- ve.db - 虛擬地球
-- trade.db - 交易系統
-- education.db - 教育系統
-- business.db - 商業運營
-- clarity.db - 清晰化
-- corpus.db - 語料庫
-- taoist.db - 道家哲學
-- work.db - 工作流程
+**用戶**
+- GET /api/v1/user/profile - 個人資料
+- PUT /api/v1/user/profile - 更新資料
 
-## 系統成熟度
+**進度**
+- POST /api/v1/progress/answer - 記錄答題
+- POST /api/v1/progress/game - 記錄遊戲
+- GET /api/v1/progress/history - 答題歷史
 
-整體: 90.7% (產品級)
+**分析**
+- GET /api/v1/analytics/overview - 學習分析
+- GET /api/v1/analytics/subject/<s> - 單科分析
+- GET /api/v1/analytics/recommendations - 推薦
+
+**排行榜**
+- GET /api/v1/leaderboard?type=exp|accuracy|streak
+
+## 前端
+
+### 部署到 GitHub Pages
+1. 將 index.html 推送到 gh-pages 分支
+2. 啟用 GitHub Pages
+
+### 功能
+- 用戶註冊/登入
+- localStorage 本地持久化
+- 學習分析儀表板 (Recharts)
+- 知識測驗系統
+- 防詐情境遊戲
