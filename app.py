@@ -16,6 +16,15 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 # 資料庫目錄
 DB_DIR = os.environ.get('DATABASE_DIR', './data')
 
+# ============ CORS 設定 ============
+@app.after_request
+def after_request(response):
+    """允許跨域請求"""
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 def get_db(db_name):
     """取得資料庫連線"""
     db_path = os.path.join(DB_DIR, f'{db_name}.db')
@@ -207,6 +216,198 @@ def qixing_status():
         'alignment': '99.7%',
         'timestamp': datetime.now().isoformat()
     })
+
+# ============ 教育系統 API ============
+
+@app.route('/api/v1/education/questions')
+def get_questions():
+    """取得題庫"""
+    conn = get_db('education')
+    if not conn:
+        return jsonify({'error': 'Education database not found'}), 404
+    
+    subject = request.args.get('subject', None)
+    limit = request.args.get('limit', 10, type=int)
+    
+    try:
+        cur = conn.cursor()
+        
+        if subject:
+            cur.execute(
+                "SELECT * FROM exam_questions WHERE subject = ? ORDER BY RANDOM() LIMIT ?",
+                (subject, limit)
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM exam_questions ORDER BY RANDOM() LIMIT ?",
+                (limit,)
+            )
+        
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        questions = []
+        for row in rows:
+            q = dict(zip(columns, row))
+            # 解析 options JSON
+            if 'options' in q and q['options']:
+                try:
+                    q['options'] = json.loads(q['options'])
+                except:
+                    pass
+            questions.append(q)
+        
+        return jsonify({
+            'questions': questions,
+            'count': len(questions)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/v1/education/check', methods=['POST'])
+def check_answer():
+    """檢查答案"""
+    data = request.get_json()
+    question_id = data.get('question_id')
+    answer = data.get('answer')
+    
+    conn = get_db('education')
+    if not conn:
+        return jsonify({'error': 'Education database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT answer, explanation FROM exam_questions WHERE question_id = ?",
+            (question_id,)
+        )
+        row = cur.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Question not found'}), 404
+        
+        correct_answer, explanation = row
+        is_correct = (answer == correct_answer)
+        
+        return jsonify({
+            'correct': is_correct,
+            'correct_answer': correct_answer,
+            'explanation': explanation,
+            'your_answer': answer
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============ 交易系統 API ============
+
+@app.route('/api/v1/trade/strategies')
+def get_strategies():
+    """取得策略列表"""
+    conn = get_db('trade')
+    if not conn:
+        return jsonify({'error': 'Trade database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM trading_strategies LIMIT 20")
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'strategies': [dict(zip(columns, row)) for row in rows],
+            'count': len(rows)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/v1/trade/indicators')
+def get_indicators():
+    """取得技術指標"""
+    conn = get_db('trade')
+    if not conn:
+        return jsonify({'error': 'Trade database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM technical_indicators")
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'indicators': [dict(zip(columns, row)) for row in rows],
+            'count': len(rows)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============ 虛擬地球 API ============
+
+@app.route('/api/v1/ve/quests')
+def get_quests():
+    """取得任務列表"""
+    conn = get_db('ve')
+    if not conn:
+        return jsonify({'error': 'VE database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM quest_rewards ORDER BY quest_id")
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'quests': [dict(zip(columns, row)) for row in rows],
+            'count': len(rows)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/v1/ve/npcs')
+def get_npcs():
+    """取得 NPC 列表"""
+    conn = get_db('ve')
+    if not conn:
+        return jsonify({'error': 'VE database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM npc_dialogues")
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'npcs': [dict(zip(columns, row)) for row in rows],
+            'count': len(rows)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/v1/ve/shop')
+def get_shop():
+    """取得商店物品"""
+    conn = get_db('ve')
+    if not conn:
+        return jsonify({'error': 'VE database not found'}), 404
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM shop_items")
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'items': [dict(zip(columns, row)) for row in rows],
+            'count': len(rows)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ============ 啟動 ============
 
