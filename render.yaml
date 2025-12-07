@@ -1,0 +1,18 @@
+# Render 部署配置
+services:
+  - type: web
+    name: ve-system
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_DIR
+        value: ./data
+    disk:
+      name: ve-data
+      mountPath: /data
+      sizeGB: 1
