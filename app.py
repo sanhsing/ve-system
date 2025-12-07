@@ -987,14 +987,20 @@ def get_questions():
     
     cur = conn.cursor()
     
+    # 只回傳有有效選項的選擇題
+    base_query = '''
+        SELECT * FROM exam_questions 
+        WHERE options IS NOT NULL 
+          AND options != '' 
+          AND options != '[]'
+          AND length(options) > 10
+    '''
+    
     if subject and subject != 'all':
-        cur.execute('''
-            SELECT * FROM exam_questions 
-            WHERE subject_id LIKE ? 
-            ORDER BY RANDOM() LIMIT ?
-        ''', (f'%{subject}%', limit))
+        cur.execute(base_query + ' AND subject_id LIKE ? ORDER BY RANDOM() LIMIT ?', 
+                    (f'%{subject}%', limit * 2))
     else:
-        cur.execute('SELECT * FROM exam_questions ORDER BY RANDOM() LIMIT ?', (limit,))
+        cur.execute(base_query + ' ORDER BY RANDOM() LIMIT ?', (limit * 2,))
     
     rows = cur.fetchall()
     columns = [desc[0] for desc in cur.description]
@@ -1004,10 +1010,17 @@ def get_questions():
         q = dict(zip(columns, row))
         if isinstance(q.get('options'), str):
             try:
-                q['options'] = json.loads(q['options'])
+                opts = json.loads(q['options'])
+                if isinstance(opts, list) and len(opts) >= 2:
+                    q['options'] = opts
+                    questions.append(q)
             except:
                 pass
-        questions.append(q)
+        elif isinstance(q.get('options'), list) and len(q['options']) >= 2:
+            questions.append(q)
+        
+        if len(questions) >= limit:
+            break
     
     conn.close()
     return jsonify({'questions': questions, 'count': len(questions)})
