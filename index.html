@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
     <style>
         body{font-family:system-ui,-apple-system,sans-serif}
         .gradient-bg{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)}
@@ -21,25 +20,30 @@
         .fade{animation:fade .3s}
         @keyframes fade{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
         .card{background:rgba(30,41,59,.9);backdrop-filter:blur(10px)}
-        .bar{transition:width .3s}
+        .bar-anim{transition:width .3s}
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
 <div id="root"></div>
 <script type="text/babel">
-const{useState,useEffect,createContext,useContext,useCallback}=React;
-const{BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer,LineChart,Line,PieChart,Pie,Cell}=Recharts;
+const{useState,useEffect,createContext,useContext}=React;
 
 const API='https://ve-system.onrender.com';
 
-// ============ 簡易狀態管理 ============
+// ============ Context 先定義 ============
+const StoreContext=createContext(null);
+
+// ============ Store ============
 const createStore=(init)=>{
     let state=init;
     const listeners=new Set();
     return{
         get:()=>state,
-        set:(p)=>{state={...state,...(typeof p==='function'?p(state):p)};listeners.forEach(l=>l(state));
-            try{localStorage.setItem('ve-store',JSON.stringify({user:state.user,token:state.token,local:state.local}));}catch(e){}},
+        set:(p)=>{
+            state={...state,...(typeof p==='function'?p(state):p)};
+            listeners.forEach(l=>l(state));
+            try{localStorage.setItem('ve-store',JSON.stringify({user:state.user,token:state.token,local:state.local}));}catch(e){}
+        },
         sub:(l)=>{listeners.add(l);return()=>listeners.delete(l);}
     };
 };
@@ -49,24 +53,26 @@ const store=createStore({
     local:{exp:0,gold:500,level:1,hp:100,maxHp:100,completed:[],history:[]}
 });
 
-// 載入本地存儲
+// 載入本地
 try{
     const saved=JSON.parse(localStorage.getItem('ve-store')||'{}');
     if(saved.token)store.set({user:saved.user,token:saved.token,isAuth:true,local:saved.local||store.get().local});
 }catch(e){}
 
-const useStore=()=>{const[s,setS]=useState(store.get());useEffect(()=>store.sub(setS),[]);return{...s,set:store.set};};
+const useStore=()=>useContext(StoreContext);
 
 // ============ API ============
 const api={
     async req(url,opt={}){
         const t=store.get().token;
-        const h={'Content-Type':'application/json',...opt.headers};
+        const h={'Content-Type':'application/json'};
         if(t)h['X-Token']=t;
-        const r=await fetch(`${API}${url}`,{...opt,headers:h});
-        const d=await r.json();
-        if(!r.ok)throw{status:r.status,...d};
-        return d;
+        try{
+            const r=await fetch(`${API}${url}`,{...opt,headers:h});
+            const d=await r.json();
+            if(!r.ok)throw d;
+            return d;
+        }catch(e){throw e;}
     },
     get:u=>api.req(u),
     post:(u,b)=>api.req(u,{method:'POST',body:JSON.stringify(b)}),
@@ -75,11 +81,11 @@ const api={
 // ============ 共用元件 ============
 const Loading=()=><div className="flex justify-center items-center p-12"><div className="spin text-4xl">⚙️</div></div>;
 
-const Modal=({open,onClose,title,children,wide})=>{
+const Modal=({open,onClose,title,children})=>{
     if(!open)return null;
     return(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className={`card rounded-2xl ${wide?'max-w-4xl':'max-w-lg'} w-full max-h-[90vh] flex flex-col border border-slate-500 fade`} onClick={e=>e.stopPropagation()}>
+            <div className="card rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-slate-500 fade" onClick={e=>e.stopPropagation()}>
                 <div className="p-4 border-b border-slate-600 flex justify-between items-center shrink-0">
                     <h2 className="text-xl font-bold">{title}</h2>
                     <button onClick={onClose} className="w-10 h-10 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-xl font-bold">✕</button>
@@ -95,16 +101,22 @@ const Modal=({open,onClose,title,children,wide})=>{
 
 const ProgressBar=({value,max,color='bg-blue-500',h='h-2'})=>(
     <div className={`${h} bg-slate-700 rounded-full overflow-hidden`}>
-        <div className={`${h} ${color} bar rounded-full`} style={{width:`${Math.min(100,value/max*100)}%`}}/>
+        <div className={`${h} ${color} bar-anim rounded-full`} style={{width:`${Math.min(100,(value||0)/(max||1)*100)}%`}}/>
     </div>
 );
 
 // ============ 導航 ============
 const Nav=({page,setPage})=>{
-    const{user,isAuth,set}=useStore();
+    const ctx=useStore();
     const[menu,setMenu]=useState(false);
+    if(!ctx)return null;
+    const{user,isAuth,set}=ctx;
     
-    const logout=()=>{api.post('/api/v1/auth/logout').catch(()=>{});set({user:null,token:null,isAuth:false});setMenu(false);};
+    const logout=()=>{
+        api.post('/api/v1/auth/logout').catch(()=>{});
+        set({user:null,token:null,isAuth:false});
+        setMenu(false);
+    };
     
     return(
         <nav className="bg-slate-900/95 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
@@ -114,23 +126,18 @@ const Nav=({page,setPage})=>{
                     <span className="font-bold hidden sm:inline">VE-System</span>
                 </div>
                 <div className="flex items-center gap-1">
-                    {[{id:'home',i:'🏠',n:'首頁'},{id:'edu',i:'📚',n:'教育'},{id:'game',i:'🎮',n:'遊戲'},{id:'stats',i:'📊',n:'分析'}].map(x=>
-                        <button key={x.id} onClick={()=>setPage(x.id)} className={`px-3 py-2 rounded-lg text-sm transition ${page===x.id?'bg-blue-600':'hover:bg-slate-700'}`} title={x.n}>{x.i}<span className="hidden md:inline ml-1">{x.n}</span></button>
+                    {[{id:'home',i:'🏠'},{id:'edu',i:'📚'},{id:'game',i:'🎮'},{id:'stats',i:'📊'}].map(x=>
+                        <button key={x.id} onClick={()=>setPage(x.id)} className={`px-3 py-2 rounded-lg text-sm transition ${page===x.id?'bg-blue-600':'hover:bg-slate-700'}`}>{x.i}</button>
                     )}
                     {isAuth?(
                         <div className="relative ml-2">
                             <button onClick={()=>setMenu(!menu)} className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 rounded-lg hover:bg-slate-600">
                                 <span>{user?.avatar||'🧙'}</span>
-                                <span className="hidden sm:inline text-sm max-w-[80px] truncate">{user?.display_name}</span>
+                                <span className="hidden sm:inline text-sm">{user?.display_name}</span>
                             </button>
                             {menu&&(
                                 <div className="absolute right-0 top-12 bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-2 min-w-[140px] fade z-50">
-                                    <div className="px-4 py-2 border-b border-slate-700">
-                                        <div className="font-bold">{user?.display_name}</div>
-                                        <div className="text-xs text-slate-400">Lv.{user?.level} · {user?.exp} EXP</div>
-                                    </div>
                                     <button onClick={()=>{setPage('profile');setMenu(false);}} className="w-full px-4 py-2 text-left hover:bg-slate-700 text-sm">👤 個人資料</button>
-                                    <button onClick={()=>{setPage('stats');setMenu(false);}} className="w-full px-4 py-2 text-left hover:bg-slate-700 text-sm">📊 學習分析</button>
                                     <button onClick={logout} className="w-full px-4 py-2 text-left hover:bg-slate-700 text-red-400 text-sm">🚪 登出</button>
                                 </div>
                             )}
@@ -144,19 +151,20 @@ const Nav=({page,setPage})=>{
     );
 };
 
-// ============ 登入/註冊 ============
+// ============ 登入 ============
 const AuthPage=({setPage})=>{
-    const{set}=useStore();
+    const ctx=useStore();
     const[mode,setMode]=useState('login');
-    const[form,setForm]=useState({username:'',password:'',email:'',display_name:''});
+    const[form,setForm]=useState({username:'',password:'',display_name:''});
     const[err,setErr]=useState('');
     const[loading,setLoading]=useState(false);
+    if(!ctx)return null;
     
     const submit=async(e)=>{
         e.preventDefault();setErr('');setLoading(true);
         try{
             const d=await api.post(mode==='login'?'/api/v1/auth/login':'/api/v1/auth/register',form);
-            set({user:d.user,token:d.token,isAuth:true});
+            ctx.set({user:d.user,token:d.token,isAuth:true});
             setPage('home');
         }catch(e){setErr(e.error||'操作失敗');}
         finally{setLoading(false);}
@@ -176,10 +184,7 @@ const AuthPage=({setPage})=>{
                 {err&&<div className="bg-red-900/50 border border-red-600 text-red-400 p-3 rounded-lg mb-4 text-sm">{err}</div>}
                 <form onSubmit={submit} className="space-y-4">
                     <input type="text" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 outline-none" placeholder="用戶名" required/>
-                    {mode==='register'&&<>
-                        <input type="text" value={form.display_name} onChange={e=>setForm({...form,display_name:e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 outline-none" placeholder="顯示名稱"/>
-                        <input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 outline-none" placeholder="Email (選填)"/>
-                    </>}
+                    {mode==='register'&&<input type="text" value={form.display_name} onChange={e=>setForm({...form,display_name:e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 outline-none" placeholder="顯示名稱"/>}
                     <input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-blue-500 outline-none" placeholder="密碼" required/>
                     <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold disabled:opacity-50">{loading?'處理中...':mode==='login'?'登入':'註冊'}</button>
                 </form>
@@ -190,27 +195,26 @@ const AuthPage=({setPage})=>{
 
 // ============ 個人資料 ============
 const ProfilePage=()=>{
-    const{isAuth}=useStore();
+    const ctx=useStore();
     const[data,setData]=useState(null);
     const[loading,setLoading]=useState(true);
     
     useEffect(()=>{
-        if(isAuth)api.get('/api/v1/user/profile').then(setData).catch(()=>{}).finally(()=>setLoading(false));
+        if(ctx?.isAuth)api.get('/api/v1/user/profile').then(setData).catch(()=>{}).finally(()=>setLoading(false));
         else setLoading(false);
-    },[isAuth]);
+    },[ctx?.isAuth]);
     
-    if(!isAuth)return<div className="text-center py-12 text-slate-400">請先登入查看個人資料</div>;
+    if(!ctx?.isAuth)return<div className="text-center py-12 text-slate-400">請先登入</div>;
     if(loading)return<Loading/>;
     if(!data)return<div className="text-center py-12 text-red-400">載入失敗</div>;
     
     const{user:u,stats:s,today:t}=data;
-    
     return(
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">👤 個人資料</h1>
             <div className="card rounded-xl p-6 border border-slate-600">
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-4xl">{u.avatar}</div>
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-3xl">{u.avatar}</div>
                     <div>
                         <h2 className="text-xl font-bold">{u.display_name}</h2>
                         <p className="text-slate-400 text-sm">@{u.username}</p>
@@ -221,10 +225,6 @@ const ProfilePage=()=>{
                         </div>
                     </div>
                 </div>
-                <div className="mt-4 space-y-2">
-                    <div><span className="text-xs text-slate-500">經驗值</span><ProgressBar value={u.exp%300} max={u.level*300} color="bg-green-500"/></div>
-                    <div><span className="text-xs text-slate-500">HP</span><ProgressBar value={u.hp} max={u.max_hp} color="bg-red-500"/></div>
-                </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="card rounded-xl p-4 border border-slate-600 text-center"><div className="text-2xl font-bold text-blue-400">{s.total_answers}</div><div className="text-xs text-slate-500">總答題</div></div>
@@ -232,96 +232,59 @@ const ProfilePage=()=>{
                 <div className="card rounded-xl p-4 border border-slate-600 text-center"><div className="text-2xl font-bold text-yellow-400">{s.achievement_count}</div><div className="text-xs text-slate-500">成就</div></div>
                 <div className="card rounded-xl p-4 border border-slate-600 text-center"><div className="text-2xl font-bold text-purple-400">{s.badge_count}</div><div className="text-xs text-slate-500">徽章</div></div>
             </div>
-            <div className="card rounded-xl p-4 border border-slate-600">
-                <h3 className="font-bold mb-3">📅 今日</h3>
-                <div className="grid grid-cols-4 gap-2 text-center text-sm">
-                    <div><div className="text-lg font-bold">{t.questions_answered}</div><div className="text-xs text-slate-500">答題</div></div>
-                    <div><div className="text-lg font-bold text-green-400">{t.correct_count}</div><div className="text-xs text-slate-500">答對</div></div>
-                    <div><div className="text-lg font-bold text-yellow-400">+{t.exp_gained}</div><div className="text-xs text-slate-500">EXP</div></div>
-                    <div><div className="text-lg font-bold text-orange-400">{t.streak_count}</div><div className="text-xs text-slate-500">連勝</div></div>
-                </div>
-            </div>
         </div>
     );
 };
 
-// ============ 學習分析 ============
+// ============ 學習分析 (簡化版，無 Recharts) ============
 const StatsPage=()=>{
-    const{isAuth,local}=useStore();
+    const ctx=useStore();
     const[data,setData]=useState(null);
     const[loading,setLoading]=useState(true);
     
     useEffect(()=>{
-        if(isAuth){
+        if(ctx?.isAuth){
             api.get('/api/v1/analytics/overview').then(setData).catch(()=>{}).finally(()=>setLoading(false));
         }else{
-            // 本地數據
+            const local=ctx?.local||{history:[]};
             const subj=local.history.reduce((a,h)=>{
                 let s=a.find(x=>x.subject===h.subject);
                 if(!s){s={subject:h.subject||'未分類',total:0,correct:0};a.push(s);}
                 s.total++;if(h.correct)s.correct++;
                 return a;
             },[]).map(s=>({...s,accuracy:s.total?Math.round(s.correct/s.total*100):0}));
-            setData({by_subject:subj,daily_trend:[],weak_subjects:subj.filter(s=>s.accuracy<60).slice(0,3),best_streak:0});
+            setData({by_subject:subj,weak_subjects:subj.filter(s=>s.accuracy<60),best_streak:0});
             setLoading(false);
         }
-    },[isAuth,local]);
+    },[ctx]);
     
     if(loading)return<Loading/>;
-    
-    const COLORS=['#3b82f6','#22c55e','#eab308','#ef4444','#a855f7','#06b6d4'];
     
     return(
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">📊 學習分析</h1>
-            {!isAuth&&<div className="bg-yellow-900/30 border border-yellow-600 p-3 rounded-lg text-sm text-yellow-400">⚠️ 未登入，顯示本地數據</div>}
+            {!ctx?.isAuth&&<div className="bg-yellow-900/30 border border-yellow-600 p-3 rounded-lg text-sm text-yellow-400">⚠️ 未登入，顯示本地數據</div>}
             
             <div className="card rounded-xl p-4 border border-slate-600">
                 <h3 className="font-bold mb-3">📚 各科正確率</h3>
                 {data?.by_subject?.length>0?(
-                    <div className="h-48">
-                        <ResponsiveContainer>
-                            <BarChart data={data.by_subject}>
-                                <XAxis dataKey="subject" tick={{fill:'#94a3b8',fontSize:11}}/>
-                                <YAxis tick={{fill:'#94a3b8',fontSize:11}} domain={[0,100]}/>
-                                <Tooltip contentStyle={{background:'#1e293b',border:'1px solid #475569',borderRadius:8}}/>
-                                <Bar dataKey="accuracy" fill="#3b82f6" radius={[4,4,0,0]}/>
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="space-y-3">
+                        {data.by_subject.map((s,i)=>(
+                            <div key={i} className="flex items-center gap-3">
+                                <span className="w-20 text-sm truncate">{s.subject}</span>
+                                <div className="flex-1"><ProgressBar value={s.accuracy} max={100} color={s.accuracy>=60?'bg-green-500':'bg-red-500'}/></div>
+                                <span className="w-12 text-right text-sm">{s.accuracy}%</span>
+                            </div>
+                        ))}
                     </div>
-                ):<p className="text-slate-500 text-center py-8">開始答題後顯示</p>}
+                ):<p className="text-slate-500 text-center py-4">開始答題後顯示</p>}
             </div>
-            
-            {data?.daily_trend?.length>0&&(
-                <div className="card rounded-xl p-4 border border-slate-600">
-                    <h3 className="font-bold mb-3">📈 近7日趨勢</h3>
-                    <div className="h-48">
-                        <ResponsiveContainer>
-                            <LineChart data={[...data.daily_trend].reverse()}>
-                                <XAxis dataKey="date" tick={{fill:'#94a3b8',fontSize:11}} tickFormatter={d=>d?.slice(5)}/>
-                                <YAxis tick={{fill:'#94a3b8',fontSize:11}}/>
-                                <Tooltip contentStyle={{background:'#1e293b',border:'1px solid #475569',borderRadius:8}}/>
-                                <Line type="monotone" dataKey="questions_answered" stroke="#3b82f6" strokeWidth={2} name="答題數"/>
-                                <Line type="monotone" dataKey="correct_count" stroke="#22c55e" strokeWidth={2} name="答對數"/>
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            )}
             
             {data?.weak_subjects?.length>0&&(
                 <div className="card rounded-xl p-4 border border-red-500/30">
                     <h3 className="font-bold text-red-400 mb-3">⚠️ 需加強</h3>
-                    <div className="space-y-2">
-                        {data.weak_subjects.map((s,i)=>(
-                            <div key={i} className="flex items-center justify-between">
-                                <span className="text-sm">{s.subject}</span>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-24"><ProgressBar value={s.accuracy} max={100} color="bg-red-500"/></div>
-                                    <span className="text-red-400 text-sm w-10 text-right">{s.accuracy}%</span>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex flex-wrap gap-2">
+                        {data.weak_subjects.map((s,i)=><span key={i} className="px-3 py-1 bg-red-900/30 text-red-400 rounded-lg text-sm">{s.subject} ({s.accuracy}%)</span>)}
                     </div>
                 </div>
             )}
@@ -334,7 +297,7 @@ const StatsPage=()=>{
                 </div>
                 <div className="card rounded-xl p-4 border border-slate-600 text-center">
                     <div className="text-4xl mb-1">📝</div>
-                    <div className="text-2xl font-bold text-blue-400">{data?.by_subject?.reduce((s,x)=>s+x.total,0)||0}</div>
+                    <div className="text-2xl font-bold text-blue-400">{data?.by_subject?.reduce((s,x)=>s+(x.total||0),0)||0}</div>
                     <div className="text-xs text-slate-500">總答題</div>
                 </div>
             </div>
@@ -344,7 +307,9 @@ const StatsPage=()=>{
 
 // ============ 首頁 ============
 const Home=({setPage})=>{
-    const{isAuth,user,local}=useStore();
+    const ctx=useStore();
+    if(!ctx)return<Loading/>;
+    const{isAuth,user,local}=ctx;
     const p=isAuth?user:local;
     
     return(
@@ -371,17 +336,17 @@ const Home=({setPage})=>{
                 {!isAuth&&<div className="mt-3 pt-3 border-t border-slate-700 text-center"><button onClick={()=>setPage('login')} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm">登入以保存進度</button></div>}
             </div>
             
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 {[
-                    {id:'edu',i:'📚',t:'教育系統',d:'108課綱 · 知識測驗',c:'border-blue-500'},
-                    {id:'game',i:'🎮',t:'防詐遊戲',d:'情境挑戰 · 怪物收集',c:'border-green-500'},
-                    {id:'stats',i:'📊',t:'學習分析',d:'進度追蹤 · 弱點分析',c:'border-purple-500'},
-                    {id:'profile',i:'👤',t:'個人中心',d:'成就徽章 · 排行榜',c:'border-yellow-500'},
+                    {id:'edu',i:'📚',t:'教育系統',d:'知識測驗'},
+                    {id:'game',i:'🎮',t:'防詐遊戲',d:'情境挑戰'},
+                    {id:'stats',i:'📊',t:'學習分析',d:'進度追蹤'},
+                    {id:'profile',i:'👤',t:'個人中心',d:'成就徽章'},
                 ].map(x=>(
-                    <button key={x.id} onClick={()=>setPage(x.id)} className={`card rounded-xl p-5 border-2 border-slate-600 hover:${x.c} transition text-left group`}>
-                        <div className="text-4xl mb-2 group-hover:scale-110 transition">{x.i}</div>
-                        <h2 className="text-lg font-bold">{x.t}</h2>
-                        <p className="text-slate-400 text-sm">{x.d}</p>
+                    <button key={x.id} onClick={()=>setPage(x.id)} className="card rounded-xl p-4 border border-slate-600 hover:border-blue-500 transition text-left">
+                        <div className="text-3xl mb-2">{x.i}</div>
+                        <h2 className="font-bold">{x.t}</h2>
+                        <p className="text-slate-400 text-xs">{x.d}</p>
                     </button>
                 ))}
             </div>
@@ -391,8 +356,8 @@ const Home=({setPage})=>{
 
 // ============ 教育系統 ============
 const EduPage=()=>{
-    const{isAuth,local,set}=useStore();
-    const[state,setState]=useState('menu'); // menu, playing, result
+    const ctx=useStore();
+    const[state,setState]=useState('menu');
     const[qs,setQs]=useState([]);
     const[idx,setIdx]=useState(0);
     const[ans,setAns]=useState(null);
@@ -418,7 +383,7 @@ const EduPage=()=>{
                 setQs(d.questions);setIdx(0);setScore({c:0,t:0,streak:0,max:0});
                 setAns(null);setRes(null);setTimer(30);setState('playing');
             }
-        }catch(e){alert('載入失敗');}
+        }catch(e){alert('載入失敗，請稍後再試');}
     };
     
     const submit=async(a)=>{
@@ -429,13 +394,13 @@ const EduPage=()=>{
             setRes(d);
             const ns=d.correct?score.streak+1:0;
             setScore(p=>({c:p.c+(d.correct?1:0),t:p.t+1,streak:ns,max:Math.max(p.max,ns)}));
-            if(!isAuth){
-                const nl={...local};
+            if(ctx&&!ctx.isAuth){
+                const nl={...ctx.local};
                 nl.exp+=d.correct?20:5;
                 nl.gold+=d.correct?10:0;
                 nl.level=Math.floor(nl.exp/300)+1;
                 nl.history.push({subject:qs[idx].subject_id,correct:d.correct,ts:Date.now()});
-                set({local:nl});
+                ctx.set({local:nl});
             }
         }catch(e){setRes({correct:false,error:true});}
     };
@@ -447,17 +412,15 @@ const EduPage=()=>{
     
     if(state==='playing'){
         const q=qs[idx];if(!q)return<Loading/>;
-        const opts=typeof q.options==='string'?JSON.parse(q.options):q.options||[];
+        let opts=[];
+        try{opts=typeof q.options==='string'?JSON.parse(q.options):q.options||[];}catch(e){}
         return(
             <div className="max-w-2xl mx-auto space-y-4">
                 <button onClick={()=>setState('menu')} className="text-sm text-slate-400 hover:text-white">← 退出</button>
                 <div className="card rounded-xl p-5 border border-slate-600">
                     <div className="flex justify-between items-center mb-2 text-sm">
                         <span className="text-slate-400">{idx+1}/{qs.length}</span>
-                        <div className="flex items-center gap-2">
-                            {score.streak>=3&&<span className="text-orange-400">🔥{score.streak}</span>}
-                            <span className={timer<=10?'text-red-400 font-bold':''}>{timer}s</span>
-                        </div>
+                        <span className={timer<=10?'text-red-400 font-bold':''}>{timer}s</span>
                     </div>
                     <ProgressBar value={timer} max={30} color={timer<=10?'bg-red-500':'bg-green-500'}/>
                     <h2 className="text-lg mt-4 mb-4">{q.question_text}</h2>
@@ -467,15 +430,13 @@ const EduPage=()=>{
                             const isC=res?.correct_answer===l;
                             const isW=ans===l&&!res?.correct;
                             let cls='border-slate-600 hover:border-blue-500';
-                            if(res){cls=isC?'border-green-500 bg-green-900/30':isW?'border-red-500 bg-red-900/30 shake':'opacity-50';}
-                            return<button key={i} onClick={()=>submit(l)} disabled={!!res} className={`w-full text-left p-3 rounded-lg border-2 transition text-sm ${cls}`}><span className="font-bold text-blue-400 mr-2">{l}.</span>{o.substring(2)}</button>;
+                            if(res){cls=isC?'border-green-500 bg-green-900/30':isW?'border-red-500 bg-red-900/30':'opacity-50';}
+                            return<button key={i} onClick={()=>submit(l)} disabled={!!res} className={`w-full text-left p-3 rounded-lg border-2 transition text-sm ${cls}`}>{o}</button>;
                         })}
                     </div>
-                    {res&&(
-                        <div className={`mt-4 p-3 rounded-lg text-sm ${res.correct?'bg-green-900/40 border border-green-600':'bg-red-900/40 border border-red-600'}`}>
-                            <div className="font-bold">{res.timeout?'⏰ 時間到':res.correct?'✅ 正確！':'❌ 錯誤'}{!res.correct&&<span className="ml-2 text-green-400">答案: {res.correct_answer}</span>}</div>
-                        </div>
-                    )}
+                    {res&&<div className={`mt-4 p-3 rounded-lg text-sm ${res.correct?'bg-green-900/40 border border-green-600':'bg-red-900/40 border border-red-600'}`}>
+                        {res.timeout?'⏰ 時間到':res.correct?'✅ 正確！':'❌ 錯誤'}{!res.correct&&!res.timeout&&<span className="ml-2 text-green-400">答案: {res.correct_answer}</span>}
+                    </div>}
                     {res&&<button onClick={next} className="w-full py-3 bg-blue-600 rounded-lg font-bold mt-4">{idx<qs.length-1?'下一題':'查看結果'}</button>}
                 </div>
             </div>
@@ -485,12 +446,10 @@ const EduPage=()=>{
     if(state==='result'){
         const pct=score.t?Math.round(score.c/score.t*100):0;
         const g=pct>=90?'S':pct>=80?'A':pct>=70?'B':pct>=60?'C':'D';
-        const gc={S:'text-yellow-400',A:'text-green-400',B:'text-blue-400',C:'text-slate-400',D:'text-red-400'};
         return(
             <div className="max-w-sm mx-auto card rounded-xl p-6 border border-slate-600 text-center">
-                <div className="text-4xl mb-2">🎉</div>
-                <h2 className="text-xl font-bold mb-2">測驗完成</h2>
-                <div className={`text-6xl font-bold mb-4 ${gc[g]}`}>{g}</div>
+                <h2 className="text-xl font-bold mb-2">🎉 測驗完成</h2>
+                <div className={`text-6xl font-bold mb-4 ${g==='S'?'text-yellow-400':g==='A'?'text-green-400':'text-blue-400'}`}>{g}</div>
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-slate-700 p-2 rounded-lg"><div className="text-xl font-bold text-green-400">{score.c}</div><div className="text-xs text-slate-500">答對</div></div>
                     <div className="bg-slate-700 p-2 rounded-lg"><div className="text-xl font-bold">{pct}%</div><div className="text-xs text-slate-500">正確率</div></div>
@@ -510,7 +469,7 @@ const EduPage=()=>{
             <div className="max-w-md mx-auto card rounded-xl p-6 border border-slate-600 text-center">
                 <div className="text-5xl mb-3">🎯</div>
                 <h2 className="text-xl font-bold mb-2">知識測驗</h2>
-                <p className="text-slate-400 text-sm mb-4">挑戰 10 題，測試你的知識！</p>
+                <p className="text-slate-400 text-sm mb-4">挑戰 10 題！</p>
                 <button onClick={start} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold">開始挑戰</button>
             </div>
         </div>
@@ -519,31 +478,31 @@ const EduPage=()=>{
 
 // ============ 遊戲系統 ============
 const GamePage=()=>{
-    const{isAuth,local,set}=useStore();
+    const ctx=useStore();
     const[state,setState]=useState('menu');
     const[scene,setScene]=useState(null);
     const[result,setResult]=useState(null);
     
-    const player=isAuth?store.get().user:local;
+    const local=ctx?.local||{exp:0,gold:500,level:1,hp:100,maxHp:100,completed:[]};
     
     const scenarios=[
-        {id:'S001',title:'神秘投資',diff:'簡單',desc:'收到訊息：「內線消息！保證報酬50%！」',opts:[{id:'A',text:'立即匯款',ok:false,fb:'❌「保證獲利」是詐騙警訊！'},{id:'B',text:'查證身份',ok:true,fb:'✅ 正確！永遠先查證。'}],reward:{exp:100,gold:50}},
-        {id:'S002',title:'假冒客服',diff:'簡單',desc:'來電：「我是銀行風控，帳戶異常，請提供密碼。」',opts:[{id:'A',text:'提供密碼',ok:false,fb:'❌ 銀行絕不要密碼！'},{id:'B',text:'撥官方電話',ok:true,fb:'✅ 正確！'}],reward:{exp:100,gold:50}},
-        {id:'S003',title:'網購超低價',diff:'中等',desc:'名牌包1/10價，要求私下轉帳。',opts:[{id:'A',text:'轉帳購買',ok:false,fb:'❌ 私下轉帳無保障！'},{id:'B',text:'用平台交易',ok:true,fb:'✅ 使用有保障的平台。'}],reward:{exp:150,gold:80}},
-        {id:'S004',title:'中獎通知',diff:'中等',desc:'簡訊：「恭喜中獎100萬！請先匯手續費5萬。」',opts:[{id:'A',text:'匯款領獎',ok:false,fb:'❌ 先付費才領獎是詐騙！'},{id:'B',text:'忽略刪除',ok:true,fb:'✅ 正確！這是典型詐騙。'}],reward:{exp:150,gold:80}},
-        {id:'S005',title:'愛情陷阱',diff:'困難',desc:'網友交往3個月說急需用錢，要借10萬。',opts:[{id:'A',text:'匯款幫助',ok:false,fb:'❌ 網路交友借錢要小心！'},{id:'B',text:'要求視訊',ok:true,fb:'✅ 確認真實身份很重要！'}],reward:{exp:200,gold:100}},
+        {id:'S001',title:'神秘投資',diff:'簡單',desc:'「內線消息！保證報酬50%！」',opts:[{id:'A',text:'立即匯款',ok:false,fb:'❌「保證獲利」是詐騙！'},{id:'B',text:'查證身份',ok:true,fb:'✅ 正確！'}],reward:{exp:100,gold:50}},
+        {id:'S002',title:'假冒客服',diff:'簡單',desc:'「我是銀行風控，請提供密碼。」',opts:[{id:'A',text:'提供密碼',ok:false,fb:'❌ 銀行絕不要密碼！'},{id:'B',text:'撥官方電話',ok:true,fb:'✅ 正確！'}],reward:{exp:100,gold:50}},
+        {id:'S003',title:'網購超低價',diff:'中等',desc:'名牌包1折，要求私下轉帳。',opts:[{id:'A',text:'轉帳購買',ok:false,fb:'❌ 私下轉帳無保障！'},{id:'B',text:'用平台交易',ok:true,fb:'✅ 正確！'}],reward:{exp:150,gold:80}},
+        {id:'S004',title:'中獎通知',diff:'中等',desc:'「中獎100萬！請先匯手續費。」',opts:[{id:'A',text:'匯款領獎',ok:false,fb:'❌ 先付費是詐騙！'},{id:'B',text:'忽略刪除',ok:true,fb:'✅ 正確！'}],reward:{exp:150,gold:80}},
+        {id:'S005',title:'愛情陷阱',diff:'困難',desc:'網友交往3個月說急需借10萬。',opts:[{id:'A',text:'匯款幫助',ok:false,fb:'❌ 網路交友借錢要小心！'},{id:'B',text:'要求視訊',ok:true,fb:'✅ 確認真實身份！'}],reward:{exp:200,gold:100}},
     ];
     
     const play=(s)=>{setScene(s);setResult(null);setState('playing');};
     
     const answer=(o)=>{
         setResult(o);
-        if(!isAuth){
+        if(ctx&&!ctx.isAuth){
             const nl={...local};
             if(o.ok){nl.exp+=scene.reward.exp;nl.gold+=scene.reward.gold;if(!nl.completed.includes(scene.id))nl.completed.push(scene.id);}
             else{nl.hp=Math.max(0,nl.hp-20);nl.exp+=20;}
             nl.level=Math.floor(nl.exp/300)+1;
-            set({local:nl});
+            ctx.set({local:nl});
         }
     };
     
@@ -553,40 +512,24 @@ const GamePage=()=>{
                 <button onClick={()=>setState('menu')} className="text-sm text-slate-400 hover:text-white">← 返回</button>
                 <div className="card rounded-xl p-4 border border-slate-600">
                     <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                            <span>🧙 Lv.{player?.level||1}</span>
-                            <div className="w-20"><ProgressBar value={player?.hp||100} max={player?.maxHp||100} color="bg-red-500" h="h-1.5"/></div>
-                        </div>
+                        <span>🧙 Lv.{local.level}</span>
                         <div className="flex gap-3">
-                            <span className="text-green-400">{player?.exp||0} EXP</span>
-                            <span className="text-yellow-400">💰{player?.gold||500}</span>
+                            <span className="text-red-400">❤️{local.hp}</span>
+                            <span className="text-yellow-400">💰{local.gold}</span>
                         </div>
                     </div>
                 </div>
                 <div className="card rounded-xl p-5 border border-slate-600">
-                    <div className="flex justify-between items-start mb-3">
-                        <h2 className="text-xl font-bold">{scene.title}</h2>
-                        <span className={`text-xs px-2 py-1 rounded ${scene.diff==='簡單'?'bg-green-900 text-green-400':scene.diff==='中等'?'bg-yellow-900 text-yellow-400':'bg-red-900 text-red-400'}`}>{scene.diff}</span>
-                    </div>
-                    <div className="bg-slate-700/50 p-4 rounded-lg mb-4">
-                        <p className="text-lg">{scene.desc}</p>
-                    </div>
+                    <h2 className="text-xl font-bold mb-3">{scene.title}</h2>
+                    <div className="bg-slate-700/50 p-4 rounded-lg mb-4">{scene.desc}</div>
                     {!result?(
                         <div className="grid gap-3">
-                            {scene.opts.map(o=>(
-                                <button key={o.id} onClick={()=>answer(o)} className="p-4 rounded-lg border-2 border-slate-600 hover:border-blue-500 transition text-left">
-                                    <span className="font-bold text-blue-400 mr-2">{o.id}.</span>{o.text}
-                                </button>
-                            ))}
+                            {scene.opts.map(o=><button key={o.id} onClick={()=>answer(o)} className="p-4 rounded-lg border-2 border-slate-600 hover:border-blue-500 transition text-left"><span className="font-bold text-blue-400 mr-2">{o.id}.</span>{o.text}</button>)}
                         </div>
                     ):(
-                        <div className={`p-4 rounded-lg ${result.ok?'bg-green-900/40 border border-green-500 bounce':'bg-red-900/40 border border-red-500 shake'}`}>
-                            <p className="font-bold text-lg mb-2">{result.fb}</p>
-                            {result.ok?(
-                                <p className="text-green-400">獲得 +{scene.reward.exp} EXP, +{scene.reward.gold} 金幣</p>
-                            ):(
-                                <p className="text-red-400">HP -20, 但獲得 +20 EXP (從失敗中學習)</p>
-                            )}
+                        <div className={`p-4 rounded-lg ${result.ok?'bg-green-900/40 border border-green-500':'bg-red-900/40 border border-red-500'}`}>
+                            <p className="font-bold mb-2">{result.fb}</p>
+                            {result.ok?<p className="text-green-400">+{scene.reward.exp} EXP, +{scene.reward.gold} 金幣</p>:<p className="text-red-400">HP -20, +20 EXP</p>}
                             <button onClick={()=>setState('menu')} className="mt-3 px-6 py-2 bg-slate-600 rounded-lg">返回</button>
                         </div>
                     )}
@@ -601,35 +544,24 @@ const GamePage=()=>{
             <div className="card rounded-xl p-4 border border-slate-600">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-2xl">🧙</div>
-                        <div>
-                            <div className="font-bold">Lv.{player?.level||1}</div>
-                            <div className="w-24"><ProgressBar value={player?.hp||100} max={player?.maxHp||100} color="bg-red-500"/></div>
-                        </div>
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">🧙</div>
+                        <div><div className="font-bold">Lv.{local.level}</div><div className="w-20"><ProgressBar value={local.hp} max={local.maxHp} color="bg-red-500" h="h-1"/></div></div>
                     </div>
-                    <div className="text-right text-sm">
-                        <div className="text-green-400">{player?.exp||0} EXP</div>
-                        <div className="text-yellow-400">💰 {player?.gold||500}</div>
-                    </div>
+                    <div className="text-sm"><span className="text-green-400 mr-3">{local.exp} EXP</span><span className="text-yellow-400">💰{local.gold}</span></div>
                 </div>
             </div>
-            <div className="grid gap-4">
+            <div className="space-y-3">
                 {scenarios.map(s=>{
-                    const done=local.completed.includes(s.id);
+                    const done=local.completed?.includes(s.id);
                     return(
-                        <button key={s.id} onClick={()=>play(s)} className={`card rounded-xl p-4 border ${done?'border-green-500/50':'border-slate-600 hover:border-blue-500'} transition text-left`}>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        {done&&<span className="text-green-400">✓</span>}
-                                        <h3 className="font-bold">{s.title}</h3>
-                                    </div>
-                                    <p className="text-slate-400 text-sm mt-1">{s.desc.substring(0,30)}...</p>
-                                </div>
-                                <div className="text-right">
+                        <button key={s.id} onClick={()=>play(s)} className={`w-full card rounded-xl p-4 border ${done?'border-green-500/50':'border-slate-600 hover:border-blue-500'} transition text-left`}>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    {done&&<span className="text-green-400">✓</span>}
+                                    <span className="font-bold">{s.title}</span>
                                     <span className={`text-xs px-2 py-0.5 rounded ${s.diff==='簡單'?'bg-green-900 text-green-400':s.diff==='中等'?'bg-yellow-900 text-yellow-400':'bg-red-900 text-red-400'}`}>{s.diff}</span>
-                                    <div className="text-xs text-yellow-400 mt-1">+{s.reward.exp} EXP</div>
                                 </div>
+                                <span className="text-xs text-yellow-400">+{s.reward.exp} EXP</span>
                             </div>
                         </button>
                     );
@@ -642,8 +574,12 @@ const GamePage=()=>{
 // ============ App ============
 const App=()=>{
     const[page,setPage]=useState('home');
+    const[state,setState]=useState(store.get());
+    
+    useEffect(()=>store.sub(setState),[]);
+    
     return(
-        <StoreProvider>
+        <StoreContext.Provider value={{...state,set:store.set}}>
             <div className="min-h-screen pb-8">
                 <Nav page={page} setPage={setPage}/>
                 <main className="max-w-4xl mx-auto px-4 py-6">
@@ -654,16 +590,10 @@ const App=()=>{
                     {page==='edu'&&<EduPage/>}
                     {page==='game'&&<GamePage/>}
                 </main>
-                <footer className="text-center py-4 text-slate-500 text-xs">VE-System v9 | 北斗七星文創數位 | 道的1%原則</footer>
+                <footer className="text-center py-4 text-slate-500 text-xs">VE-System v9b | 北斗七星文創數位</footer>
             </div>
-        </StoreProvider>
+        </StoreContext.Provider>
     );
-};
-
-const StoreProvider=({children})=>{
-    const[s,setS]=useState(store.get());
-    useEffect(()=>store.sub(setS),[]);
-    return<StoreContext.Provider value={{...s,set:store.set}}>{children}</StoreContext.Provider>;
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
