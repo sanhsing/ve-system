@@ -35,12 +35,15 @@ const Loading=()=><div className="flex justify-center p-8"><div className="spin 
 const Modal=({open,onClose,title,children,wide})=>{
     if(!open)return null;
     return(<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className={`card rounded-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] overflow-hidden border border-slate-600 fade`} onClick={e=>e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                <h2 className="text-xl font-bold">{title}</h2>
-                <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+        <div className={`card rounded-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] overflow-hidden border border-slate-500 fade relative`} onClick={e=>e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-600 flex justify-between items-center bg-slate-800">
+                <h2 className="text-xl font-bold pr-12">{title}</h2>
+                <button onClick={onClose} className="absolute top-3 right-3 w-10 h-10 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-2xl font-bold transition" title="關閉">✕</button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[80vh]">{children}</div>
+            <div className="p-5 overflow-y-auto" style={{maxHeight:'calc(90vh - 140px)'}}>{children}</div>
+            <div className="p-4 border-t border-slate-600 bg-slate-800">
+                <button onClick={onClose} className="w-full py-3 bg-slate-600 hover:bg-slate-500 rounded-lg font-semibold transition">關閉視窗</button>
+            </div>
         </div>
     </div>);
 };
