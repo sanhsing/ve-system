@@ -378,11 +378,18 @@ const EduPage=()=>{
     
     const start=async()=>{
         try{
-            const d=await api.get('/api/v1/education/questions?limit=10');
-            if(d.questions?.length){
-                setQs(d.questions);setIdx(0);setScore({c:0,t:0,streak:0,max:0});
+            const d=await api.get('/api/v1/education/questions?limit=15');
+            // 過濾有效選擇題 (至少2個選項)
+            const validQs=(d.questions||[]).filter(q=>{
+                try{
+                    const opts=typeof q.options==='string'?JSON.parse(q.options):q.options;
+                    return Array.isArray(opts)&&opts.length>=2;
+                }catch{return false;}
+            }).slice(0,10);
+            if(validQs.length>=5){
+                setQs(validQs);setIdx(0);setScore({c:0,t:0,streak:0,max:0});
                 setAns(null);setRes(null);setTimer(30);setState('playing');
-            }
+            }else{alert('題目不足，請稍後再試');}
         }catch(e){alert('載入失敗，請稍後再試');}
     };
     
