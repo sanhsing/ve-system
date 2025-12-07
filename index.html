@@ -9,10 +9,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-        .star-glow { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
         .loading-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .shake { animation: shake 0.5s; }
@@ -21,169 +19,822 @@
         @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .fade-in { animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .progress-bar { transition: width 0.5s ease; }
+        .progress-bar { transition: width 0.3s; }
+        .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const API_BASE = 'https://ve-system.onrender.com';
-        
-        const Loading = () => (<div className="flex items-center justify-center p-8"><div className="loading-spin text-4xl">⚙️</div><span className="ml-3 text-gray-400">載入中...</span></div>);
-        const StatCard = ({ title, value, subtitle, icon }) => (<div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:border-indigo-500 transition-all"><div className="flex items-center justify-between"><div><p className="text-gray-400 text-sm">{title}</p><p className="text-3xl font-bold mt-1">{value}</p>{subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}</div><div className="text-4xl opacity-80">{icon}</div></div></div>);
-        const Modal = ({ isOpen, onClose, title, children }) => { if (!isOpen) return null; return (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}><div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-600 fade-in" onClick={e => e.stopPropagation()}><div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center"><h2 className="text-xl font-bold">{title}</h2><button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button></div><div className="p-4">{children}</div></div></div>); };
-        
-        const Navbar = ({ currentPage, setCurrentPage }) => {
-            const navItems = [{ id: 'dashboard', name: '儀表板', icon: '📊' },{ id: 'qixing', name: '北斗七星', icon: '⭐' },{ id: 'databases', name: '資料庫', icon: '🗄️' },{ id: 'trade', name: '交易系統', icon: '📈' },{ id: 'education', name: '教育系統', icon: '📚' },{ id: 've', name: '虛擬地球', icon: '🌍' }];
-            return (<nav className="bg-gray-900/50 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50"><div className="max-w-7xl mx-auto px-4"><div className="flex items-center justify-between h-16"><div className="flex items-center space-x-2 cursor-pointer" onClick={() => setCurrentPage('dashboard')}><span className="text-2xl">🌌</span><span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">VE-System</span></div><div className="flex space-x-1 overflow-x-auto">{navItems.map(item => (<button key={item.id} onClick={() => setCurrentPage(item.id)} className={`px-3 py-2 rounded-lg text-sm transition-all ${currentPage === item.id ? 'bg-indigo-600' : 'text-gray-300 hover:bg-gray-700'}`}><span className="mr-1">{item.icon}</span><span className="hidden md:inline">{item.name}</span></button>))}</div></div></div></nav>);
-        };
-        
-        const Dashboard = () => {
-            const [status, setStatus] = useState(null);
-            const [loading, setLoading] = useState(true);
-            useEffect(() => { fetch(`${API_BASE}/api/v1/status`).then(r => r.json()).then(d => { setStatus(d); setLoading(false); }).catch(() => setLoading(false)); }, []);
-            if (loading) return <Loading />;
-            return (<div className="space-y-6"><div className="text-center py-8"><h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">虛擾地球系統</h1><p className="text-gray-400 mt-2">Virtual Earth System</p><div className="mt-4 inline-flex items-center px-4 py-2 bg-green-900/50 rounded-full border border-green-500"><span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span><span className="text-green-400">系統運行中</span></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><StatCard title="系統成熟度" value={status?.maturity || '90.7%'} subtitle="產品級" icon="🎯" /><StatCard title="資料庫" value={status?.totals?.databases || 9} subtitle="九宮格局" icon="🗄️" /><StatCard title="資料表" value={status?.totals?.tables?.toLocaleString()} subtitle="結構完整" icon="📋" /><StatCard title="資料筆數" value={status?.totals?.records?.toLocaleString()} subtitle="持續累積" icon="📊" /></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">🗄️ 九庫統計</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{status?.databases && Object.entries(status.databases).sort((a, b) => (b[1].records || 0) - (a[1].records || 0)).map(([name, db]) => (<div key={name} className="bg-gray-900/50 rounded-lg p-4 border border-gray-600"><div className="flex justify-between"><span className="text-indigo-400">{name}.db</span><span className="text-xs text-gray-500">{db.tables} 表</span></div><div className="text-2xl font-bold mt-2">{(db.records || 0).toLocaleString()}</div><div className="mt-2 bg-gray-700 rounded-full h-2"><div className="bg-indigo-500 h-2 rounded-full progress-bar" style={{ width: `${Math.min((db.records || 0) / 1500, 100)}%` }}></div></div></div>))}</div></div></div>);
-        };
-        
-        const QiXing = () => {
-            const [qixing, setQixing] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [selectedStar, setSelectedStar] = useState(null);
-            useEffect(() => { fetch(`${API_BASE}/api/v1/qixing`).then(r => r.json()).then(d => { setQixing(d); setLoading(false); }).catch(() => setLoading(false)); }, []);
-            if (loading) return <Loading />;
-            const starDetails = { '光蘊': { desc: '掌管系統願景與核心價值', color: 'from-yellow-400 to-orange-500' }, '織明': { desc: '負責系統架構設計', color: 'from-blue-400 to-cyan-500' }, '理樞': { desc: '處理邏輯運算與演算法', color: 'from-purple-400 to-pink-500' }, '澄書': { desc: '沉澱知識與文檔', color: 'from-green-400 to-teal-500' }, '流祇': { desc: '優化流程與效率', color: 'from-red-400 to-rose-500' }, '星殼': { desc: '呈現使用者介面', color: 'from-indigo-400 to-violet-500' }, '璃語': { desc: '處理溝通與翻譯', color: 'from-amber-400 to-yellow-500' } };
-            return (<div className="space-y-6"><div className="text-center py-4"><h1 className="text-3xl font-bold">⭐ 北斗七星協作體系</h1><p className="text-gray-400 mt-2">對齊率: {qixing?.alignment}</p></div><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h3 className="font-semibold mb-4">選擇一顆星</h3><div className="grid grid-cols-2 gap-3">{qixing?.stars?.map(star => (<button key={star.id} onClick={() => setSelectedStar(star)} className={`p-4 rounded-lg border text-left ${selectedStar?.id === star.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'}`}><div className="flex items-center gap-2"><span className="text-2xl">⭐</span><div><div className="font-bold">{star.name}</div><div className="text-sm text-gray-400">{star.role}</div></div></div></button>))}</div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">{selectedStar ? (<div className="space-y-4 fade-in"><div className={`text-center p-6 rounded-lg bg-gradient-to-r ${starDetails[selectedStar.name]?.color}`}><div className="text-6xl mb-4">⭐</div><h2 className="text-2xl font-bold">{selectedStar.name}</h2><p>{selectedStar.role}</p></div><div className="p-4 bg-gray-900/50 rounded-lg"><h4 className="font-semibold mb-2">職責</h4><p className="text-gray-400">{starDetails[selectedStar.name]?.desc}</p></div></div>) : (<div className="text-center text-gray-500 py-20">← 點擊選擇星</div>)}</div></div></div>);
-        };
-        
-        const Databases = () => {
-            const [selectedDb, setSelectedDb] = useState(null);
-            const [tables, setTables] = useState([]);
-            const [selectedTable, setSelectedTable] = useState(null);
-            const [tableData, setTableData] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [searchTerm, setSearchTerm] = useState('');
-            const databases = ['meta', 've', 'trade', 'education', 'business', 'clarity', 'corpus', 'taoist', 'work'];
-            const loadTables = async (db) => { setLoading(true); setSelectedDb(db); setSelectedTable(null); setTableData(null); try { const res = await fetch(`${API_BASE}/api/v1/db/${db}/tables`); const data = await res.json(); setTables(data.tables || []); } catch (e) {} setLoading(false); };
-            const loadTableData = async (table) => { setLoading(true); setSelectedTable(table); try { const res = await fetch(`${API_BASE}/api/v1/db/${selectedDb}/table/${table}?limit=20`); const data = await res.json(); setTableData(data); } catch (e) {} setLoading(false); };
-            const filteredTables = tables.filter(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-            return (<div className="space-y-6"><h1 className="text-3xl font-bold">🗄️ 資料庫瀏覽器</h1><div className="flex flex-wrap gap-2">{databases.map(db => (<button key={db} onClick={() => loadTables(db)} className={`px-4 py-2 rounded-lg ${selectedDb === db ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>{db}.db</button>))}</div>{selectedDb && (<div className="grid grid-cols-1 lg:grid-cols-4 gap-6"><div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700"><input type="text" placeholder="搜尋..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm mb-3" /><h3 className="font-semibold mb-2 text-indigo-400">{selectedDb}.db ({filteredTables.length})</h3><div className="space-y-1 max-h-[500px] overflow-y-auto">{filteredTables.map(table => (<button key={table} onClick={() => loadTableData(table)} className={`w-full text-left px-3 py-2 rounded text-sm ${selectedTable === table ? 'bg-indigo-600' : 'hover:bg-gray-700'}`}>{table}</button>))}</div></div><div className="lg:col-span-3 bg-gray-800/50 rounded-xl p-4 border border-gray-700">{loading ? <Loading /> : tableData ? (<div className="fade-in"><div className="flex justify-between mb-3"><h3 className="font-semibold text-indigo-400">{selectedTable}</h3><span className="text-sm text-gray-500">共 {tableData.pagination?.total?.toLocaleString()} 筆</span></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-gray-700">{tableData.columns?.slice(0, 6).map(col => (<th key={col} className="text-left p-2 text-gray-400">{col}</th>))}</tr></thead><tbody>{tableData.data?.map((row, i) => (<tr key={i} className="border-b border-gray-800 hover:bg-gray-700/50">{tableData.columns?.slice(0, 6).map(col => (<td key={col} className="p-2 max-w-[200px] truncate">{String(row[col] ?? '').substring(0, 50)}</td>))}</tr>))}</tbody></table></div></div>) : (<div className="text-center text-gray-500 py-20">← 選擇資料表</div>)}</div></div>)}</div>);
-        };
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const API = 'https://ve-system.onrender.com';
 
-        const Education = () => {
-            const [mode, setMode] = useState('menu');
-            const [questions, setQuestions] = useState([]);
-            const [currentQ, setCurrentQ] = useState(0);
-            const [selected, setSelected] = useState(null);
-            const [result, setResult] = useState(null);
-            const [score, setScore] = useState({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
-            const [loading, setLoading] = useState(false);
-            const [subject, setSubject] = useState('all');
-            const [questionCount, setQuestionCount] = useState(10);
-            const [history, setHistory] = useState([]);
-            const [timeLeft, setTimeLeft] = useState(30);
-            const [timerActive, setTimerActive] = useState(false);
+// === 通用 ===
+const Loading = () => <div className="flex justify-center p-8"><div className="loading-spin text-4xl">⚙️</div></div>;
+const Modal = ({ open, onClose, title, children, wide }) => {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className={`card rounded-2xl ${wide ? 'max-w-4xl' : 'max-w-2xl'} w-full max-h-[85vh] overflow-hidden border border-slate-600 fade-in`} onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                    <h2 className="text-xl font-bold">{title}</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+                <div className="p-4 overflow-y-auto max-h-[70vh]">{children}</div>
+            </div>
+        </div>
+    );
+};
 
-            const subjects = [{ id: 'all', name: '全部科目', icon: '📚' },{ id: '數學', name: '數學', icon: '🔢' },{ id: '國文', name: '國文', icon: '📖' },{ id: '英文', name: '英文', icon: '🔤' },{ id: '自然', name: '自然科學', icon: '🔬' },{ id: '社會', name: '社會', icon: '🌍' }];
+const Navbar = ({ page, setPage }) => {
+    const items = [
+        { id: 'home', icon: '🏠', name: '首頁' },
+        { id: 'edu', icon: '📚', name: '教育系統' },
+        { id: 've', icon: '🌍', name: '虛擬地球' },
+        { id: 'db', icon: '🗄️', name: '資料庫' },
+    ];
+    return (
+        <nav className="bg-slate-900/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+            <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPage('home')}>
+                    <span className="text-2xl">🌌</span>
+                    <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VE-System</span>
+                </div>
+                <div className="flex gap-1">
+                    {items.map(i => (
+                        <button key={i.id} onClick={() => setPage(i.id)}
+                            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition ${page === i.id ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
+                            <span>{i.icon}</span><span className="hidden sm:inline">{i.name}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </nav>
+    );
+};
 
-            useEffect(() => { if (timerActive && timeLeft > 0) { const t = setTimeout(() => setTimeLeft(v => v - 1), 1000); return () => clearTimeout(t); } else if (timeLeft === 0 && timerActive) { handleTimeout(); } }, [timeLeft, timerActive]);
-            const handleTimeout = () => { setTimerActive(false); setResult({ correct: false, correct_answer: questions[currentQ]?.answer, timeout: true }); setScore(p => ({ ...p, total: p.total + 1, streak: 0 })); setHistory(p => [...p, { ...questions[currentQ], correct: false }]); };
+// === 首頁 ===
+const Home = ({ setPage }) => {
+    const [status, setStatus] = useState(null);
+    useEffect(() => { fetch(`${API}/api/v1/status`).then(r => r.json()).then(setStatus).catch(() => {}); }, []);
+    
+    return (
+        <div className="space-y-6">
+            <div className="text-center py-8">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">虛擾地球系統</h1>
+                <p className="text-slate-400 mt-2">Virtual Earth System v1.0</p>
+                <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-900/50 rounded-full border border-green-500">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                    <span className="text-green-400">系統運行中</span>
+                </div>
+            </div>
             
-            const loadQuestions = async () => {
-                setLoading(true);
-                try {
-                    const url = subject === 'all' ? `${API_BASE}/api/v1/education/questions?limit=${questionCount}` : `${API_BASE}/api/v1/education/questions?limit=${questionCount}&subject=${subject}`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    if (data.questions?.length > 0) {
-                        setQuestions(data.questions); setCurrentQ(0); setScore({ correct: 0, total: 0, streak: 0, maxStreak: 0 }); setSelected(null); setResult(null); setHistory([]); setMode('quiz'); setTimeLeft(30); setTimerActive(true);
-                    } else { alert('此科目沒有題目，請選其他科目'); }
-                } catch (e) { alert('載入失敗'); }
-                setLoading(false);
-            };
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="card rounded-xl p-4 border border-slate-700">
+                    <div className="text-3xl font-bold text-blue-400">{status?.maturity || '90.7%'}</div>
+                    <div className="text-slate-500 text-sm">系統成熟度</div>
+                </div>
+                <div className="card rounded-xl p-4 border border-slate-700">
+                    <div className="text-3xl font-bold text-purple-400">{status?.totals?.databases || 9}</div>
+                    <div className="text-slate-500 text-sm">資料庫</div>
+                </div>
+                <div className="card rounded-xl p-4 border border-slate-700">
+                    <div className="text-3xl font-bold text-green-400">{status?.totals?.tables?.toLocaleString() || '1,663'}</div>
+                    <div className="text-slate-500 text-sm">資料表</div>
+                </div>
+                <div className="card rounded-xl p-4 border border-slate-700">
+                    <div className="text-3xl font-bold text-yellow-400">{status?.totals?.records?.toLocaleString() || '146,626'}</div>
+                    <div className="text-slate-500 text-sm">資料筆數</div>
+                </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+                <div onClick={() => setPage('edu')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-blue-500 transition">
+                    <div className="flex items-center gap-4">
+                        <div className="text-5xl">📚</div>
+                        <div>
+                            <h2 className="text-xl font-bold">教育系統</h2>
+                            <p className="text-slate-400 text-sm mt-1">知識挑戰 · AI認證課程 · 成就系統</p>
+                            <div className="mt-2 flex gap-2">
+                                <span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">107+ 題庫</span>
+                                <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-400 rounded">12 成就</span>
+                                <span className="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">AI課程</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div onClick={() => setPage('ve')} className="card rounded-xl p-6 border border-slate-700 cursor-pointer hover:border-green-500 transition">
+                    <div className="flex items-center gap-4">
+                        <div className="text-5xl">🌍</div>
+                        <div>
+                            <h2 className="text-xl font-bold">虛擬地球 E18K</h2>
+                            <p className="text-slate-400 text-sm mt-1">防詐遊戲 · NPC對話 · 任務系統</p>
+                            <div className="mt-2 flex gap-2">
+                                <span className="text-xs px-2 py-1 bg-red-900/50 text-red-400 rounded">11 任務</span>
+                                <span className="text-xs px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded">8 NPC</span>
+                                <span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">商店系統</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// === 教育系統 ===
+const Education = () => {
+    const [tab, setTab] = useState('quiz');
+    const [mode, setMode] = useState('menu');
+    const [questions, setQuestions] = useState([]);
+    const [currentQ, setCurrentQ] = useState(0);
+    const [answer, setAnswer] = useState(null);
+    const [result, setResult] = useState(null);
+    const [score, setScore] = useState({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
+    const [loading, setLoading] = useState(false);
+    const [subject, setSubject] = useState('all');
+    const [count, setCount] = useState(10);
+    const [timer, setTimer] = useState(30);
+    const [timerOn, setTimerOn] = useState(false);
+    const [achievements, setAchievements] = useState([]);
+    const [badges, setBadges] = useState([]);
+    const [levels, setLevels] = useState([]);
+    const [modules, setModules] = useState([]);
+    const [lessons, setLessons] = useState([]);
+    const [selectedLesson, setSelectedLesson] = useState(null);
+    const [player, setPlayer] = useState({ xp: 0, level: 1, title: '學習新手', badges: [] });
+
+    const subjects = [
+        { id: 'all', name: '全部', icon: '📚' },
+        { id: '數學', name: '數學', icon: '🔢' },
+        { id: '國文', name: '國文', icon: '📖' },
+        { id: '英文', name: '英文', icon: '🔤' },
+        { id: '自然', name: '自然', icon: '🔬' },
+        { id: '社會', name: '社會', icon: '🌍' },
+    ];
+
+    // 載入成就、徽章、等級、課程
+    useEffect(() => {
+        Promise.all([
+            fetch(`${API}/api/v1/db/education/table/achievements?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/education/table/badges?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/education/table/level_thresholds?limit=10`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/education/table/ai_cert_modules?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/education/table/ai_cert_lessons?limit=50`).then(r => r.json()).catch(() => ({ data: [] })),
+        ]).then(([ach, bdg, lvl, mod, les]) => {
+            setAchievements(ach.data || []);
+            setBadges(bdg.data || []);
+            setLevels(lvl.data || []);
+            setModules(mod.data || []);
+            setLessons(les.data || []);
+        });
+    }, []);
+
+    // 計時器
+    useEffect(() => {
+        if (timerOn && timer > 0) {
+            const t = setTimeout(() => setTimer(v => v - 1), 1000);
+            return () => clearTimeout(t);
+        } else if (timer === 0 && timerOn) {
+            setTimerOn(false);
+            setResult({ correct: false, timeout: true, correct_answer: questions[currentQ]?.answer });
+            setScore(p => ({ ...p, total: p.total + 1, streak: 0 }));
+        }
+    }, [timer, timerOn]);
+
+    // 更新玩家等級
+    useEffect(() => {
+        const lvl = levels.find(l => player.xp >= l.xp_required) || levels[0];
+        if (lvl && lvl.level !== player.level) {
+            setPlayer(p => ({ ...p, level: lvl.level, title: lvl.title }));
+        }
+    }, [player.xp, levels]);
+
+    const loadQuestions = async () => {
+        setLoading(true);
+        try {
+            const url = subject === 'all' ? `${API}/api/v1/education/questions?limit=${count}` : `${API}/api/v1/education/questions?limit=${count}&subject=${subject}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.questions?.length > 0) {
+                setQuestions(data.questions);
+                setCurrentQ(0);
+                setScore({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
+                setAnswer(null);
+                setResult(null);
+                setMode('quiz');
+                setTimer(30);
+                setTimerOn(true);
+            } else {
+                alert('此科目沒有題目');
+            }
+        } catch (e) { alert('載入失敗'); }
+        setLoading(false);
+    };
+
+    const checkAnswer = async (ans) => {
+        if (result) return;
+        setAnswer(ans);
+        setTimerOn(false);
+        try {
+            const res = await fetch(`${API}/api/v1/education/check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question_id: questions[currentQ].question_id, answer: ans })
+            });
+            const data = await res.json();
+            setResult(data);
+            const newStreak = data.correct ? score.streak + 1 : 0;
+            const xpGain = data.correct ? 20 : 5;
+            setScore(p => ({ correct: p.correct + (data.correct ? 1 : 0), total: p.total + 1, streak: newStreak, maxStreak: Math.max(p.maxStreak, newStreak) }));
+            setPlayer(p => ({ ...p, xp: p.xp + xpGain }));
+        } catch (e) {}
+    };
+
+    const nextQuestion = () => {
+        if (currentQ < questions.length - 1) {
+            setCurrentQ(p => p + 1);
+            setAnswer(null);
+            setResult(null);
+            setTimer(30);
+            setTimerOn(true);
+        } else {
+            setMode('result');
+        }
+    };
+
+    // 測驗選單
+    const QuizMenu = () => (
+        <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+                <div className="card rounded-xl p-6 border border-slate-700">
+                    <h3 className="font-semibold mb-4">🎯 選擇科目</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {subjects.map(s => (
+                            <button key={s.id} onClick={() => setSubject(s.id)}
+                                className={`p-3 rounded-lg border text-center transition ${subject === s.id ? 'bg-blue-600 border-blue-500' : 'border-slate-600 hover:border-blue-500'}`}>
+                                <div className="text-2xl">{s.icon}</div>
+                                <div className="text-sm mt-1">{s.name}</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="card rounded-xl p-6 border border-slate-700">
+                    <h3 className="font-semibold mb-4">📊 設定</h3>
+                    <div className="mb-4">
+                        <div className="text-sm text-slate-400 mb-2">題目數量</div>
+                        <div className="flex gap-2">
+                            {[5, 10, 15, 20].map(n => (
+                                <button key={n} onClick={() => setCount(n)}
+                                    className={`px-4 py-2 rounded-lg ${count === n ? 'bg-green-600' : 'bg-slate-700 hover:bg-slate-600'}`}>{n}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <button onClick={loadQuestions} disabled={loading}
+                        className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-bold mt-4">
+                        {loading ? '載入中...' : '🚀 開始挑戰'}
+                    </button>
+                </div>
+            </div>
             
-            const checkAnswer = async (answer) => {
-                if (result) return;
-                setSelected(answer); setTimerActive(false);
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/education/check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_id: questions[currentQ].question_id, answer }) });
-                    const data = await res.json();
-                    setResult(data);
-                    const newStreak = data.correct ? score.streak + 1 : 0;
-                    setScore(p => ({ correct: p.correct + (data.correct ? 1 : 0), total: p.total + 1, streak: newStreak, maxStreak: Math.max(p.maxStreak, newStreak) }));
-                    setHistory(p => [...p, { ...questions[currentQ], correct: data.correct }]);
-                } catch (e) {}
-            };
+            {/* 玩家狀態 */}
+            <div className="card rounded-xl p-4 border border-slate-700">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xl">🎓</div>
+                        <div>
+                            <div className="font-bold">Lv.{player.level} {player.title}</div>
+                            <div className="text-sm text-slate-400">經驗值: {player.xp}</div>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-sm text-slate-400">下一等級</div>
+                        <div className="text-sm">{levels.find(l => l.level === player.level + 1)?.xp_required - player.xp || '???'} XP</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    // 測驗中
+    const Quiz = () => {
+        const q = questions[currentQ];
+        if (!q) return <Loading />;
+        const opts = Array.isArray(q.options) ? q.options : [];
+        
+        return (
+            <div className="max-w-3xl mx-auto space-y-4">
+                <div className="flex justify-between items-center">
+                    <button onClick={() => { setMode('menu'); setTimerOn(false); }} className="text-slate-400 hover:text-white">← 返回</button>
+                    <div className="flex items-center gap-4">
+                        {score.streak >= 3 && <span className="text-orange-400 bounce">🔥 {score.streak}</span>}
+                        <span className="text-green-400 font-bold">{score.correct}/{score.total}</span>
+                    </div>
+                </div>
+                
+                <div className="card rounded-xl p-6 border border-slate-700">
+                    <div className="flex justify-between text-sm text-slate-400 mb-2">
+                        <span>題目 {currentQ + 1}/{questions.length}</span>
+                        <span className={timer <= 10 ? 'text-red-400 font-bold' : ''}>{timer}s</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-700 rounded-full mb-1">
+                        <div className="h-1.5 bg-blue-500 rounded-full progress-bar" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}></div>
+                    </div>
+                    <div className="h-1 bg-slate-700 rounded-full mb-4">
+                        <div className={`h-1 rounded-full progress-bar ${timer <= 10 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${(timer / 30) * 100}%` }}></div>
+                    </div>
+                    
+                    <div className="mb-2"><span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">{q.subject || q.subject_id}</span></div>
+                    <h2 className="text-lg mb-6">{q.question_text}</h2>
+                    
+                    <div className="space-y-2">
+                        {opts.map((opt, i) => {
+                            const letter = opt.charAt(0);
+                            const isSelected = answer === letter;
+                            const isCorrect = result?.correct_answer === letter;
+                            const isWrong = isSelected && !result?.correct;
+                            let cls = 'border-slate-600 hover:border-blue-500';
+                            if (result) {
+                                if (isCorrect) cls = 'border-green-500 bg-green-900/30 bounce';
+                                else if (isWrong) cls = 'border-red-500 bg-red-900/30 shake';
+                                else cls = 'border-slate-700 opacity-50';
+                            }
+                            return (
+                                <button key={i} onClick={() => checkAnswer(letter)} disabled={!!result}
+                                    className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}>
+                                    <span className="font-bold mr-2">{letter}.</span>{opt.substring(2)}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    
+                    {result && (
+                        <div className={`mt-4 p-4 rounded-lg fade-in ${result.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}>
+                            <div className="font-bold">
+                                {result.timeout ? '⏰ 時間到！' : result.correct ? '✅ 答對了！+20 XP' : '❌ 答錯了 +5 XP'}
+                                {!result.correct && <span className="ml-2 text-green-400">正確: {result.correct_answer}</span>}
+                            </div>
+                            {q.explanation && <p className="text-slate-300 text-sm mt-2">{q.explanation}</p>}
+                        </div>
+                    )}
+                    
+                    {result && (
+                        <button onClick={nextQuestion} className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold mt-4">
+                            {currentQ < questions.length - 1 ? '下一題 →' : '查看結果 🏆'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    // 結果
+    const Result = () => {
+        const pct = Math.round((score.correct / score.total) * 100);
+        const grade = pct >= 90 ? 'S' : pct >= 80 ? 'A' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : 'D';
+        const colors = { S: 'text-yellow-400', A: 'text-green-400', B: 'text-blue-400', C: 'text-orange-400', D: 'text-red-400' };
+        return (
+            <div className="max-w-md mx-auto card rounded-xl p-8 border border-slate-700 text-center">
+                <div className="text-5xl mb-4">🎉</div>
+                <h2 className="text-2xl font-bold">挑戰完成！</h2>
+                <div className={`text-8xl font-bold my-6 ${colors[grade]}`}>{grade}</div>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-green-400">{score.correct}</div><div className="text-xs text-slate-500">答對</div></div>
+                    <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold">{pct}%</div><div className="text-xs text-slate-500">正確率</div></div>
+                    <div className="bg-slate-800 p-3 rounded-lg"><div className="text-2xl font-bold text-orange-400">{score.maxStreak}</div><div className="text-xs text-slate-500">最高連勝</div></div>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => setMode('menu')} className="flex-1 py-2 bg-slate-700 rounded-lg">返回</button>
+                    <button onClick={loadQuestions} className="flex-1 py-2 bg-blue-600 rounded-lg">再玩</button>
+                </div>
+            </div>
+        );
+    };
+
+    // AI 課程
+    const Courses = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold">📖 AI 認證課程</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+                {modules.map((m, i) => (
+                    <div key={i} className="card rounded-xl p-4 border border-slate-700">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h4 className="font-bold text-blue-400">{m.module_name_zh || m.module_name}</h4>
+                                <p className="text-sm text-slate-400 mt-1">{m.description?.substring(0, 60)}...</p>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-slate-700 rounded">難度 {m.difficulty}</span>
+                        </div>
+                        <div className="mt-3 flex justify-between items-center text-sm">
+                            <span className="text-slate-500">⏱️ {m.estimated_hours}h</span>
+                            <button onClick={() => {
+                                const relatedLessons = lessons.filter(l => l.module_id === m.module_id);
+                                if (relatedLessons.length > 0) setSelectedLesson(relatedLessons[0]);
+                            }} className="px-3 py-1 bg-blue-600 rounded text-xs">學習</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 成就
+    const Achievements = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold">🏆 成就系統</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {achievements.map((a, i) => (
+                    <div key={i} className="card rounded-lg p-3 border border-slate-700 flex items-center gap-3">
+                        <div className="text-3xl">{a.badge_icon}</div>
+                        <div>
+                            <div className="font-semibold">{a.name}</div>
+                            <div className="text-xs text-slate-400">{a.description}</div>
+                            <div className="text-xs text-yellow-400 mt-1">+{a.points} 點</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // 徽章
+    const Badges = () => (
+        <div className="space-y-4">
+            <h3 className="font-semibold">🎖️ 徽章收集</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {badges.map((b, i) => (
+                    <div key={i} className="card rounded-lg p-4 border border-slate-700 text-center">
+                        <div className="text-4xl mb-2">{b.icon}</div>
+                        <div className="font-semibold text-sm">{b.name}</div>
+                        <div className="text-xs text-slate-400 mt-1">{b.description}</div>
+                        <div className="text-xs text-green-400 mt-1">+{b.xp_reward} XP</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="space-y-6">
+            <h1 className="text-2xl font-bold">📚 教育系統</h1>
             
-            const nextQuestion = () => { if (currentQ < questions.length - 1) { setCurrentQ(p => p + 1); setSelected(null); setResult(null); setTimeLeft(30); setTimerActive(true); } else { setMode('result'); } };
+            <div className="flex gap-2 flex-wrap">
+                <button onClick={() => { setTab('quiz'); setMode('menu'); }} className={`px-4 py-2 rounded-lg ${tab === 'quiz' ? 'bg-blue-600' : 'bg-slate-700'}`}>🎯 知識挑戰</button>
+                <button onClick={() => setTab('course')} className={`px-4 py-2 rounded-lg ${tab === 'course' ? 'bg-blue-600' : 'bg-slate-700'}`}>📖 AI課程</button>
+                <button onClick={() => setTab('achieve')} className={`px-4 py-2 rounded-lg ${tab === 'achieve' ? 'bg-blue-600' : 'bg-slate-700'}`}>🏆 成就</button>
+                <button onClick={() => setTab('badge')} className={`px-4 py-2 rounded-lg ${tab === 'badge' ? 'bg-blue-600' : 'bg-slate-700'}`}>🎖️ 徽章</button>
+            </div>
+            
+            {tab === 'quiz' && (mode === 'menu' ? <QuizMenu /> : mode === 'quiz' ? <Quiz /> : <Result />)}
+            {tab === 'course' && <Courses />}
+            {tab === 'achieve' && <Achievements />}
+            {tab === 'badge' && <Badges />}
+            
+            <Modal open={!!selectedLesson} onClose={() => setSelectedLesson(null)} title={selectedLesson?.lesson_name_zh || selectedLesson?.lesson_name} wide>
+                {selectedLesson && (
+                    <div className="prose prose-invert max-w-none">
+                        <div className="text-sm text-slate-400 mb-4">⏱️ 預計 {selectedLesson.estimated_minutes} 分鐘</div>
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedLesson.content}</div>
+                    </div>
+                )}
+            </Modal>
+        </div>
+    );
+};
 
-            if (mode === 'menu') {
-                return (<div className="space-y-6"><h1 className="text-3xl font-bold">📚 教育系統 - 知識挑戰</h1><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">🎯 選擇科目</h2><div className="grid grid-cols-2 gap-3">{subjects.map(s => (<button key={s.id} onClick={() => setSubject(s.id)} className={`p-4 rounded-lg border text-left ${subject === s.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'}`}><span className="text-2xl mr-2">{s.icon}</span>{s.name}</button>))}</div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">📊 題數</h2><div className="flex gap-2 mb-4">{[5, 10, 15, 20].map(n => (<button key={n} onClick={() => setQuestionCount(n)} className={`px-4 py-2 rounded-lg ${questionCount === n ? 'bg-green-600' : 'bg-gray-700'}`}>{n} 題</button>))}</div><button onClick={loadQuestions} disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg font-bold text-lg">{loading ? '載入中...' : '🚀 開始挑戰'}</button></div></div></div>);
-            }
+// === 虛擬地球 ===
+const VirtualEarth = () => {
+    const [tab, setTab] = useState('game');
+    const [quests, setQuests] = useState([]);
+    const [npcs, setNpcs] = useState([]);
+    const [shop, setShop] = useState([]);
+    const [dialogues, setDialogues] = useState([]);
+    const [currentQuest, setCurrentQuest] = useState(null);
+    const [currentNpc, setCurrentNpc] = useState(null);
+    const [questResult, setQuestResult] = useState(null);
+    const [dialogueState, setDialogueState] = useState(null);
+    const [player, setPlayer] = useState({ hp: 100, maxHp: 100, gold: 500, exp: 0, level: 1, completed: [], inventory: [] });
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState(null);
 
-            if (mode === 'quiz') {
-                const q = questions[currentQ]; if (!q) return <Loading />;
-                const options = Array.isArray(q.options) ? q.options : [];
-                return (<div className="space-y-6 max-w-3xl mx-auto"><div className="flex justify-between items-center"><button onClick={() => { setMode('menu'); setTimerActive(false); }} className="text-gray-400 hover:text-white">← 返回</button><div className="flex items-center gap-4">{score.streak >= 3 && <span className="text-orange-400 bounce">🔥 {score.streak}</span>}<span className="text-green-400 font-bold">{score.correct}</span><span className="text-gray-500">/</span><span className="text-gray-400">{score.total}</span></div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><div className="mb-4"><div className="flex justify-between text-sm text-gray-400 mb-1"><span>題目 {currentQ + 1} / {questions.length}</span><span className={timeLeft <= 10 ? 'text-red-400 font-bold' : ''}>{timeLeft}s</span></div><div className="bg-gray-700 rounded-full h-2 mb-1"><div className="bg-indigo-500 h-2 rounded-full progress-bar" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}></div></div><div className="bg-gray-700 rounded-full h-1"><div className={`h-1 rounded-full progress-bar ${timeLeft <= 10 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${(timeLeft / 30) * 100}%` }}></div></div></div><div className="mb-2"><span className="text-sm text-indigo-400 bg-indigo-900/30 px-2 py-1 rounded">{q.subject || q.subject_id}</span></div><h2 className="text-xl mb-6">{q.question_text}</h2><div className="space-y-3">{options.map((opt, i) => { const letter = opt.charAt(0); const isSelected = selected === letter; const isCorrect = result?.correct_answer === letter; const isWrong = isSelected && !result?.correct; let btnClass = 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'; if (result) { if (isCorrect) btnClass = 'bg-green-900/50 border-green-500 bounce'; else if (isWrong) btnClass = 'bg-red-900/50 border-red-500 shake'; else btnClass = 'bg-gray-900/50 border-gray-700 opacity-50'; } return (<button key={i} onClick={() => checkAnswer(letter)} disabled={result !== null} className={`w-full text-left p-4 rounded-lg border-2 transition-all ${btnClass}`}><span className="font-bold mr-2">{letter}.</span>{opt.substring(2)}</button>); })}</div>{result && (<div className={`mt-6 p-4 rounded-lg fade-in ${result.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}><div className="font-bold text-lg">{result.timeout ? '⏰ 時間到！' : result.correct ? '✅ 答對了！' : '❌ 答錯了'}{!result.correct && <span className="ml-2 text-green-400">正確: {result.correct_answer}</span>}</div>{q.explanation && <p className="text-gray-300 mt-2">{q.explanation}</p>}</div>)}{result && (<button onClick={nextQuestion} className="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold text-lg">{currentQ < questions.length - 1 ? '下一題 →' : '查看結果 🏆'}</button>)}</div></div>);
-            }
+    // 防詐情境
+    const scenarios = [
+        { id: 'S001', title: '神秘投資機會', difficulty: '簡單', description: '你收到訊息：「獨家內線！保證報酬50%！只限今天！」', options: [{ id: 'A', text: '立即匯款', correct: false, feedback: '❌ 「保證獲利」是最大警訊！' }, { id: 'B', text: '查證身份', correct: true, feedback: '✅ 正確！永遠先查證。' }], exp: 100, gold: 50 },
+        { id: 'S002', title: '假冒銀行', difficulty: '簡單', description: '「我是銀行風控，帳戶異常，請提供密碼驗證。」', options: [{ id: 'A', text: '提供密碼', correct: false, feedback: '❌ 銀行絕不要密碼！' }, { id: 'B', text: '掛斷自打客服', correct: true, feedback: '✅ 正確！自己撥官方電話。' }], exp: 100, gold: 50 },
+        { id: 'S003', title: '網購超低價', difficulty: '中等', description: '名牌包1/10價格，要私下轉帳。', options: [{ id: 'A', text: '匯款', correct: false, feedback: '❌ 私下轉帳沒保障！' }, { id: 'B', text: '用蝦皮交易', correct: true, feedback: '✅ 使用有保障的平台。' }], exp: 150, gold: 80 },
+        { id: 'S004', title: '交友借錢', difficulty: '困難', description: '網友說媽媽住院借5萬。', options: [{ id: 'A', text: '借錢', correct: false, feedback: '❌ 殺豬盤詐騙！' }, { id: 'B', text: '要求視訊', correct: true, feedback: '✅ 詐騙者會拒絕視訊。' }], exp: 200, gold: 120 },
+        { id: 'S005', title: '中獎簡訊', difficulty: '簡單', description: '「抽中iPhone！付399運費領取！」', options: [{ id: 'A', text: '付款', correct: false, feedback: '❌ 預付費詐騙！' }, { id: 'B', text: '確認有無參加', correct: true, feedback: '✅ 沒參加不可能中獎。' }], exp: 80, gold: 40 },
+    ];
 
-            if (mode === 'result') {
-                const percentage = Math.round((score.correct / score.total) * 100);
-                const grade = percentage >= 90 ? 'S' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : 'D';
-                const gradeColors = { S: 'text-yellow-400', A: 'text-green-400', B: 'text-blue-400', C: 'text-orange-400', D: 'text-red-400' };
-                return (<div className="space-y-6 max-w-2xl mx-auto"><div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700 text-center"><div className="text-6xl mb-4">🎉</div><h1 className="text-3xl font-bold mb-2">挑戰完成！</h1><div className={`text-9xl font-bold my-6 ${gradeColors[grade]}`}>{grade}</div><div className="grid grid-cols-3 gap-4 mb-6"><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold text-green-400">{score.correct}</div><div className="text-sm text-gray-500">答對</div></div><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold">{percentage}%</div><div className="text-sm text-gray-500">正確率</div></div><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold text-orange-400">{score.maxStreak}</div><div className="text-sm text-gray-500">最高連勝</div></div></div><div className="flex gap-4 justify-center"><button onClick={() => setMode('menu')} className="px-6 py-3 bg-gray-700 rounded-lg">返回</button><button onClick={loadQuestions} className="px-6 py-3 bg-indigo-600 rounded-lg">再玩一次</button></div></div></div>);
-            }
-        };
-        
-        const Trade = () => {
-            const [strategies, setStrategies] = useState([]);
-            const [indicators, setIndicators] = useState([]);
-            const [tab, setTab] = useState('strategies');
-            const [loading, setLoading] = useState(true);
-            const [selectedItem, setSelectedItem] = useState(null);
-            const [modalOpen, setModalOpen] = useState(false);
-            useEffect(() => { Promise.all([fetch(`${API_BASE}/api/v1/trade/strategies`).then(r => r.json()), fetch(`${API_BASE}/api/v1/trade/indicators`).then(r => r.json())]).then(([s, i]) => { setStrategies(s.strategies || []); setIndicators(i.indicators || []); setLoading(false); }).catch(() => setLoading(false)); }, []);
-            if (loading) return <Loading />;
-            return (<div className="space-y-6"><h1 className="text-3xl font-bold">📈 交易系統</h1><div className="grid grid-cols-1 md:grid-cols-4 gap-4"><StatCard title="策略數" value={strategies.length} icon="📊" /><StatCard title="指標數" value={indicators.length} icon="📉" /><StatCard title="回測" value="5" icon="🧪" /><StatCard title="成熟度" value="90.2%" icon="🎯" /></div><div className="flex gap-2"><button onClick={() => setTab('strategies')} className={`px-4 py-2 rounded-lg ${tab === 'strategies' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📊 策略 ({strategies.length})</button><button onClick={() => setTab('indicators')} className={`px-4 py-2 rounded-lg ${tab === 'indicators' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📉 指標 ({indicators.length})</button></div>{tab === 'strategies' && (<div className="grid grid-cols-1 md:grid-cols-2 gap-4">{strategies.map((s, i) => (<div key={i} onClick={() => { setSelectedItem({...s, type: 'strategy'}); setModalOpen(true); }} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-indigo-500 cursor-pointer"><h3 className="font-bold text-indigo-400">{s.strategy_name || s.name}</h3><p className="text-sm text-gray-400 mt-1">{s.description?.substring(0, 80)}...</p></div>))}</div>)}{tab === 'indicators' && (<div className="grid grid-cols-1 md:grid-cols-3 gap-4">{indicators.map((ind, i) => (<div key={i} onClick={() => { setSelectedItem({...ind, type: 'indicator'}); setModalOpen(true); }} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-green-500 cursor-pointer"><h3 className="font-bold text-green-400">{ind.indicator_name || ind.name}</h3>{ind.formula && <code className="block mt-2 text-xs bg-gray-900 p-2 rounded">{ind.formula?.substring(0, 40)}...</code>}</div>))}</div>)}<Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selectedItem?.type === 'strategy' ? '📊 策略詳情' : '📉 指標詳情'}>{selectedItem && (<div className="space-y-4"><h3 className="text-xl font-bold text-indigo-400">{selectedItem.strategy_name || selectedItem.indicator_name || selectedItem.name}</h3>{selectedItem.description && <p>{selectedItem.description}</p>}{selectedItem.formula && <div><h4 className="font-semibold text-gray-400">公式</h4><code className="block bg-gray-900 p-3 rounded">{selectedItem.formula}</code></div>}{selectedItem.interpretation && <div><h4 className="font-semibold text-gray-400">解讀</h4><p>{selectedItem.interpretation}</p></div>}</div>)}</Modal></div>);
-        };
-        
-        const VirtualEarth = () => {
-            const [tab, setTab] = useState('game');
-            const [currentScenario, setCurrentScenario] = useState(null);
-            const [scenarioResult, setScenarioResult] = useState(null);
-            const [player, setPlayer] = useState({ gold: 500, exp: 0, level: 1, hp: 100, maxHp: 100, completed: [] });
-            const [modalOpen, setModalOpen] = useState(false);
-            const [modalContent, setModalContent] = useState(null);
+    useEffect(() => {
+        Promise.all([
+            fetch(`${API}/api/v1/db/ve/table/quest_rewards?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/ve/table/npc_dialogues?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+            fetch(`${API}/api/v1/db/ve/table/shop_items?limit=20`).then(r => r.json()).catch(() => ({ data: [] })),
+        ]).then(([q, n, s]) => {
+            setQuests(q.data || []);
+            setNpcs(n.data || []);
+            setShop(s.data || []);
+        });
+    }, []);
 
-            const scenarios = [
-                { id: 'S001', title: '神秘投資機會', difficulty: '簡單', description: '你收到訊息：「獨家內線！保證報酬50%！只限今天！」', options: [{ id: 'A', text: '立即匯款投資', correct: false, feedback: '❌ 這是投資詐騙！「保證獲利」是最大警訊。' }, { id: 'B', text: '先查證對方身份', correct: true, feedback: '✅ 正確！永遠要先查證，可上金管會網站確認。' }, { id: 'C', text: '小額試試', correct: false, feedback: '❌ 詐騙會讓你先賺，再騙更多！' }, { id: 'D', text: '問朋友', correct: false, feedback: '❌ 會害朋友一起被騙。' }], exp: 100, gold: 50 },
-                { id: 'S002', title: '假冒銀行來電', difficulty: '簡單', description: '「我是銀行風控，您帳戶異常，請提供密碼驗證。」', options: [{ id: 'A', text: '提供密碼', correct: false, feedback: '❌ 銀行絕不會要密碼！' }, { id: 'B', text: '掛斷，自己打客服', correct: true, feedback: '✅ 正確！永遠自己撥打官方電話確認。' }, { id: 'C', text: '請對方證明身份', correct: false, feedback: '❌ 證件可偽造。' }, { id: 'D', text: '提供一半密碼', correct: false, feedback: '❌ 任何密碼都不能說！' }], exp: 100, gold: 50 },
-                { id: 'S003', title: '網購超低價', difficulty: '中等', description: '名牌包只要1/10價格，賣家說是「員工內購價」，要私下轉帳。', options: [{ id: 'A', text: '直接匯款', correct: false, feedback: '❌ 私下轉帳沒保障！' }, { id: 'B', text: '要求用蝦皮交易', correct: true, feedback: '✅ 正確！使用有保障的平台。' }, { id: 'C', text: '要求更多照片', correct: false, feedback: '❌ 照片可盜圖。' }, { id: 'D', text: '付一半訂金', correct: false, feedback: '❌ 訂金拿不回來！' }], exp: 150, gold: 80 },
-                { id: 'S004', title: '交友軟體借錢', difficulty: '困難', description: '認識一個月的對象說媽媽住院，需要借5萬。', options: [{ id: 'A', text: '借給他', correct: false, feedback: '❌ 這是「殺豬盤」愛情詐騙！' }, { id: 'B', text: '要求視訊確認', correct: true, feedback: '✅ 正確！愛情詐騙者會拒絕視訊。' }, { id: 'C', text: '借小筆', correct: false, feedback: '❌ 會有更多「緊急狀況」。' }, { id: 'D', text: '要求醫療證明', correct: false, feedback: '❌ 文件可偽造。' }], exp: 200, gold: 120 },
-                { id: 'S005', title: '中獎簡訊', difficulty: '簡單', description: '「恭喜抽中iPhone！付399運費即可領取！」', options: [{ id: 'A', text: '點連結付款', correct: false, feedback: '❌ 這是預付費詐騙！' }, { id: 'B', text: '確認有沒有參加抽獎', correct: true, feedback: '✅ 正確！沒參加的不可能中獎。' }, { id: 'C', text: '回覆詢問', correct: false, feedback: '❌ 會暴露有效號碼。' }, { id: 'D', text: '轉發朋友', correct: false, feedback: '❌ 會害朋友被騙！' }], exp: 80, gold: 40 }
-            ];
+    const startQuest = (q) => { setCurrentQuest(q); setQuestResult(null); setTab('playing'); };
+    const answerQuest = (opt) => {
+        setQuestResult(opt);
+        if (opt.correct) {
+            setPlayer(p => ({ ...p, exp: p.exp + currentQuest.exp, gold: p.gold + currentQuest.gold, level: Math.floor((p.exp + currentQuest.exp) / 300) + 1, completed: [...p.completed, currentQuest.id] }));
+        } else {
+            setPlayer(p => ({ ...p, hp: Math.max(0, p.hp - 20), exp: p.exp + 20 }));
+        }
+    };
+    const nextQuest = () => {
+        const idx = scenarios.findIndex(s => s.id === currentQuest.id);
+        if (idx < scenarios.length - 1) startQuest(scenarios[idx + 1]);
+        else { setTab('game'); setCurrentQuest(null); }
+    };
+    const buyItem = (item) => {
+        const price = item.price_gold || item.price || 0;
+        if (player.gold >= price) {
+            setPlayer(p => ({ ...p, gold: p.gold - price, inventory: [...p.inventory, item.item_name], hp: item.item_name?.includes('藥水') ? Math.min(p.maxHp, p.hp + 50) : p.hp }));
+            setModalContent({ type: 'success', msg: `購買 ${item.item_name} 成功！` });
+            setModalOpen(true);
+        } else {
+            setModalContent({ type: 'error', msg: '金幣不足！' });
+            setModalOpen(true);
+        }
+    };
+    const talkNpc = (npc) => { setCurrentNpc(npc); setDialogueState({ text: npc.dialogue_text, options: JSON.parse(npc.options || '[]') }); };
 
-            const startScenario = (s) => { setCurrentScenario(s); setScenarioResult(null); setTab('playing'); };
-            const answerScenario = (opt) => { setScenarioResult(opt); if (opt.correct) { setPlayer(p => ({ ...p, exp: p.exp + currentScenario.exp, gold: p.gold + currentScenario.gold, level: Math.floor((p.exp + currentScenario.exp) / 300) + 1, completed: [...p.completed, currentScenario.id] })); } else { setPlayer(p => ({ ...p, hp: Math.max(0, p.hp - 20), exp: p.exp + 20 })); } };
-            const nextScenario = () => { const idx = scenarios.findIndex(s => s.id === currentScenario.id); if (idx < scenarios.length - 1) { startScenario(scenarios[idx + 1]); } else { setTab('game'); setCurrentScenario(null); } };
+    const PlayerBar = () => (
+        <div className="card rounded-xl p-4 border border-slate-700 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-xl">🧙</div>
+                    <div>
+                        <div className="font-bold">Lv.{player.level} 防詐勇士</div>
+                        <div className="text-sm text-slate-400">已完成 {player.completed.length}/{scenarios.length} 關</div>
+                    </div>
+                </div>
+                <div className="flex gap-4 text-sm">
+                    <div><span className="text-red-400">❤️ {player.hp}/{player.maxHp}</span></div>
+                    <div><span className="text-yellow-400">💰 {player.gold}</span></div>
+                    <div><span className="text-green-400">⭐ {player.exp}</span></div>
+                    <div><span className="text-blue-400">🎒 {player.inventory.length}</span></div>
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+                <div><div className="text-xs text-slate-500 mb-1">HP</div><div className="h-2 bg-slate-700 rounded-full"><div className="h-2 bg-red-500 rounded-full progress-bar" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div></div></div>
+                <div><div className="text-xs text-slate-500 mb-1">EXP</div><div className="h-2 bg-slate-700 rounded-full"><div className="h-2 bg-green-500 rounded-full progress-bar" style={{ width: `${(player.exp % 300) / 3}%` }}></div></div></div>
+            </div>
+        </div>
+    );
 
-            const PlayerStatus = () => (<div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-xl p-4 border border-indigo-500 mb-6"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-2xl">🧙</div><div><div className="text-sm text-gray-400">防詐勇士</div><div className="font-bold text-xl">Lv.{player.level}</div></div></div><div className="flex gap-6"><div className="text-center"><div className="text-red-400 font-bold">❤️ {player.hp}/{player.maxHp}</div><div className="text-xs text-gray-500">生命</div></div><div className="text-center"><div className="text-yellow-400 font-bold">💰 {player.gold}</div><div className="text-xs text-gray-500">金幣</div></div><div className="text-center"><div className="text-green-400 font-bold">⭐ {player.exp}</div><div className="text-xs text-gray-500">經驗</div></div><div className="text-center"><div className="text-blue-400 font-bold">🎯 {player.completed.length}/{scenarios.length}</div><div className="text-xs text-gray-500">完成</div></div></div></div><div className="mt-3 grid grid-cols-2 gap-2"><div><div className="text-xs text-gray-500 mb-1">HP</div><div className="bg-gray-700 rounded-full h-2"><div className="bg-red-500 h-2 rounded-full progress-bar" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div></div></div><div><div className="text-xs text-gray-500 mb-1">EXP ({player.exp % 300}/300)</div><div className="bg-gray-700 rounded-full h-2"><div className="bg-green-500 h-2 rounded-full progress-bar" style={{ width: `${(player.exp % 300) / 3}%` }}></div></div></div></div></div>);
+    // 遊戲中
+    if (tab === 'playing' && currentQuest) {
+        return (
+            <div className="max-w-3xl mx-auto">
+                <PlayerBar />
+                <div className="card rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="bg-gradient-to-r from-red-600 to-orange-600 p-4">
+                        <div className="flex justify-between">
+                            <h2 className="font-bold text-lg">🚨 {currentQuest.title}</h2>
+                            <span className={`px-2 py-1 rounded text-xs ${currentQuest.difficulty === '簡單' ? 'bg-green-900 text-green-300' : currentQuest.difficulty === '中等' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>{currentQuest.difficulty}</span>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="bg-slate-900/50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500">
+                            <p className="text-lg">{currentQuest.description}</p>
+                        </div>
+                        <div className="space-y-2">
+                            {currentQuest.options?.map((opt, i) => {
+                                const isSelected = questResult?.id === opt.id;
+                                let cls = 'border-slate-600 hover:border-blue-500';
+                                if (questResult) {
+                                    if (opt.correct) cls = 'border-green-500 bg-green-900/30';
+                                    else if (isSelected) cls = 'border-red-500 bg-red-900/30 shake';
+                                    else cls = 'border-slate-700 opacity-50';
+                                }
+                                return (
+                                    <button key={i} onClick={() => !questResult && answerQuest(opt)} disabled={!!questResult}
+                                        className={`w-full text-left p-3 rounded-lg border-2 transition ${cls}`}>
+                                        <span className="font-bold text-blue-400 mr-2">{opt.id}.</span>{opt.text}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {questResult && (
+                            <div className={`mt-4 p-4 rounded-lg fade-in ${questResult.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}>
+                                <p>{questResult.feedback}</p>
+                                {questResult.correct && <div className="mt-2 text-sm">🏆 +{currentQuest.exp} EXP | 💰 +{currentQuest.gold}</div>}
+                                {!questResult.correct && <div className="mt-2 text-sm text-red-400">❤️ -20 HP | ⭐ +20 EXP</div>}
+                            </div>
+                        )}
+                        {questResult && (
+                            <div className="flex gap-3 mt-4">
+                                <button onClick={() => { setTab('game'); setCurrentQuest(null); }} className="flex-1 py-2 bg-slate-700 rounded-lg">返回</button>
+                                <button onClick={nextQuest} className="flex-1 py-2 bg-blue-600 rounded-lg">{scenarios.findIndex(s => s.id === currentQuest.id) < scenarios.length - 1 ? '下一關 →' : '完成'}</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-            if (tab === 'playing' && currentScenario) {
-                return (<div className="space-y-6 max-w-3xl mx-auto"><PlayerStatus /><div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"><div className="bg-gradient-to-r from-red-600 to-orange-600 p-4"><div className="flex justify-between"><h2 className="text-xl font-bold">🚨 {currentScenario.title}</h2><span className={`px-3 py-1 rounded-full text-sm ${currentScenario.difficulty === '簡單' ? 'bg-green-900 text-green-300' : currentScenario.difficulty === '中等' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>{currentScenario.difficulty}</span></div></div><div className="p-6"><div className="bg-gray-900/50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500"><p className="text-lg">{currentScenario.description}</p></div><h3 className="font-semibold mb-4 text-gray-300">你會怎麼做？</h3><div className="space-y-3">{currentScenario.options?.map((opt, i) => { const isSelected = scenarioResult?.id === opt.id; const showResult = scenarioResult !== null; let btnClass = 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'; if (showResult) { if (opt.correct) btnClass = 'bg-green-900/50 border-green-500'; else if (isSelected) btnClass = 'bg-red-900/50 border-red-500 shake'; else btnClass = 'bg-gray-900/50 border-gray-700 opacity-50'; } return (<button key={i} onClick={() => !scenarioResult && answerScenario(opt)} disabled={scenarioResult !== null} className={`w-full text-left p-4 rounded-lg border-2 transition-all ${btnClass}`}><span className="font-bold text-indigo-400 mr-2">{opt.id}.</span>{opt.text}</button>); })}</div>{scenarioResult && (<div className={`mt-6 p-4 rounded-lg fade-in ${scenarioResult.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}><p className="text-lg">{scenarioResult.feedback}</p>{scenarioResult.correct && (<div className="mt-3 flex gap-4 text-sm"><span className="text-green-400">🏆 +{currentScenario.exp} EXP</span><span className="text-yellow-400">💰 +{currentScenario.gold}</span></div>)}{!scenarioResult.correct && (<div className="mt-3 text-sm text-red-400">❤️ -20 HP | ⭐ +20 EXP</div>)}</div>)}{scenarioResult && (<div className="mt-6 flex gap-4"><button onClick={() => { setTab('game'); setCurrentScenario(null); }} className="flex-1 py-3 bg-gray-700 rounded-lg">返回</button><button onClick={nextScenario} className="flex-1 py-3 bg-indigo-600 rounded-lg font-semibold">{scenarios.findIndex(s => s.id === currentScenario.id) < scenarios.length - 1 ? '下一關 →' : '完成'}</button></div>)}</div></div></div>);
-            }
+    return (
+        <div className="space-y-6">
+            <h1 className="text-2xl font-bold">🌍 虛擬地球 - E18K 防詐遊戲</h1>
+            <PlayerBar />
+            
+            <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setTab('game')} className={`px-4 py-2 rounded-lg ${tab === 'game' ? 'bg-blue-600' : 'bg-slate-700'}`}>🎮 情境挑戰</button>
+                <button onClick={() => setTab('quest')} className={`px-4 py-2 rounded-lg ${tab === 'quest' ? 'bg-blue-600' : 'bg-slate-700'}`}>📜 任務 ({quests.length})</button>
+                <button onClick={() => setTab('npc')} className={`px-4 py-2 rounded-lg ${tab === 'npc' ? 'bg-blue-600' : 'bg-slate-700'}`}>👥 NPC ({npcs.length})</button>
+                <button onClick={() => setTab('shop')} className={`px-4 py-2 rounded-lg ${tab === 'shop' ? 'bg-blue-600' : 'bg-slate-700'}`}>🏪 商店 ({shop.length})</button>
+            </div>
+            
+            {tab === 'game' && (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {scenarios.map((s, i) => {
+                        const done = player.completed.includes(s.id);
+                        return (
+                            <div key={i} className={`card rounded-xl p-4 border ${done ? 'border-green-600' : 'border-slate-700'}`}>
+                                <div className="flex justify-between mb-2">
+                                    <h3 className="font-bold text-blue-400">{s.title}</h3>
+                                    {done && <span className="text-green-400">✅</span>}
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded ${s.difficulty === '簡單' ? 'bg-green-900/50 text-green-400' : s.difficulty === '中等' ? 'bg-yellow-900/50 text-yellow-400' : 'bg-red-900/50 text-red-400'}`}>{s.difficulty}</span>
+                                <p className="text-sm text-slate-400 mt-2 line-clamp-2">{s.description}</p>
+                                <div className="mt-3 flex justify-between items-center">
+                                    <span className="text-xs text-slate-500">🏆{s.exp} 💰{s.gold}</span>
+                                    <button onClick={() => startQuest(s)} className={`px-3 py-1 rounded text-sm ${done ? 'bg-slate-700' : 'bg-blue-600'}`}>{done ? '重玩' : '挑戰'}</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            
+            {tab === 'quest' && (
+                <div className="space-y-3">
+                    {quests.map((q, i) => (
+                        <div key={i} className="card rounded-xl p-4 border border-slate-700">
+                            <div className="flex justify-between">
+                                <div>
+                                    <h3 className="font-bold text-blue-400">{q.quest_name}</h3>
+                                    <div className="text-xs text-slate-500 mt-1">難度: {q.difficulty}</div>
+                                </div>
+                                <div className="text-right text-sm">
+                                    <div className="text-yellow-400">🏆 {q.exp_reward} EXP</div>
+                                    <div className="text-yellow-500">💰 {q.gold_reward}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
+            {tab === 'npc' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                    {npcs.slice(0, 8).map((n, i) => (
+                        <div key={i} onClick={() => talkNpc(n)} className="card rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-blue-500">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-xl">👤</div>
+                                <div>
+                                    <h3 className="font-bold text-blue-400">{n.npc_name}</h3>
+                                    <p className="text-sm text-slate-400 line-clamp-1">{n.dialogue_text?.substring(0, 40)}...</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
+            {tab === 'shop' && (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {shop.map((item, i) => (
+                        <div key={i} className="card rounded-xl p-4 border border-slate-700">
+                            <div className="flex items-start gap-3">
+                                <div className="text-3xl">{item.item_name?.includes('藥水') ? '🧪' : item.item_name?.includes('劍') ? '⚔️' : item.item_name?.includes('盾') ? '🛡️' : '📦'}</div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-yellow-400">{item.item_name}</h3>
+                                    <p className="text-sm text-slate-400">{item.description}</p>
+                                </div>
+                            </div>
+                            <div className="mt-3 flex justify-between items-center">
+                                <span className="text-yellow-500 font-bold">💰 {item.price_gold}</span>
+                                <button onClick={() => buyItem(item)} className={`px-3 py-1 rounded text-sm ${player.gold >= item.price_gold ? 'bg-yellow-600' : 'bg-slate-700'}`}>購買</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
+            <Modal open={!!currentNpc} onClose={() => setCurrentNpc(null)} title={`💬 ${currentNpc?.npc_name}`}>
+                {dialogueState && (
+                    <div>
+                        <div className="bg-slate-900 p-4 rounded-lg mb-4">{dialogueState.text}</div>
+                        <div className="space-y-2">
+                            {dialogueState.options?.map((opt, i) => (
+                                <button key={i} className="w-full text-left p-3 bg-slate-700 hover:bg-slate-600 rounded-lg">{opt}</button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </Modal>
+            <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="提示">
+                <div className="text-center py-4">
+                    <div className="text-4xl mb-4">{modalContent?.type === 'success' ? '✅' : '❌'}</div>
+                    <p>{modalContent?.msg}</p>
+                </div>
+            </Modal>
+        </div>
+    );
+};
 
-            return (<div className="space-y-6"><h1 className="text-3xl font-bold">🌍 虛擬地球 - E18K 防詐遊戲</h1><PlayerStatus /><div className="flex gap-2"><button onClick={() => setTab('game')} className={`px-4 py-2 rounded-lg ${tab === 'game' ? 'bg-indigo-600' : 'bg-gray-800'}`}>🎮 遊戲關卡</button><button onClick={() => setTab('tips')} className={`px-4 py-2 rounded-lg ${tab === 'tips' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📖 防詐小知識</button></div>{tab === 'game' && (<div className="space-y-4"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-2">🎯 防詐情境挑戰</h2><p className="text-gray-400 mb-4">面對各種詐騙情境，做出正確判斷！答對獲得獎勵，答錯扣血量。</p><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{scenarios.map((s, i) => { const isCompleted = player.completed.includes(s.id); return (<div key={i} className={`bg-gray-900/50 rounded-lg p-4 border ${isCompleted ? 'border-green-600' : 'border-gray-600'}`}><div className="flex justify-between mb-2"><h3 className="font-bold text-indigo-400">{s.title}</h3>{isCompleted && <span className="text-green-400">✅</span>}</div><span className={`text-xs px-2 py-1 rounded ${s.difficulty === '簡單' ? 'bg-green-900/50 text-green-400' : s.difficulty === '中等' ? 'bg-yellow-900/50 text-yellow-400' : 'bg-red-900/50 text-red-400'}`}>{s.difficulty}</span><p className="text-sm text-gray-400 mt-2">{s.description?.substring(0, 40)}...</p><div className="mt-3 flex justify-between items-center"><div className="text-xs text-gray-500">🏆 {s.exp} | 💰 {s.gold}</div><button onClick={() => startScenario(s)} className={`px-3 py-1 rounded text-sm ${isCompleted ? 'bg-gray-700' : 'bg-indigo-600'}`}>{isCompleted ? '重玩' : '挑戰'}</button></div></div>); })}</div></div></div>)}{tab === 'tips' && (<div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">📖 防詐小知識</h2><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="bg-gray-900/50 p-4 rounded-lg border-l-4 border-red-500"><h3 className="font-bold text-red-400 mb-2">🚫 詐騙常見手法</h3><ul className="text-sm text-gray-400 space-y-1"><li>• 投資詐騙：保證獲利、穩賺不賠</li><li>• 假冒身份：銀行、警察、法院</li><li>• 網購詐騙：價格過低、私下交易</li><li>• 愛情詐騙：網路交友、借錢急用</li></ul></div><div className="bg-gray-900/50 p-4 rounded-lg border-l-4 border-green-500"><h3 className="font-bold text-green-400 mb-2">✅ 防詐三要訣</h3><ul className="text-sm text-gray-400 space-y-1"><li>• <strong>冷靜</strong>：不急著做決定</li><li>• <strong>查證</strong>：自己打電話確認</li><li>• <strong>求助</strong>：撥打165反詐騙專線</li><li>• 記住：天下沒有白吃的午餐！</li></ul></div></div></div>)}</div>);
-        };
-        
-        const App = () => {
-            const [currentPage, setCurrentPage] = useState('dashboard');
-            const renderPage = () => { switch (currentPage) { case 'dashboard': return <Dashboard />; case 'qixing': return <QiXing />; case 'databases': return <Databases />; case 'trade': return <Trade />; case 'education': return <Education />; case 've': return <VirtualEarth />; default: return <Dashboard />; } };
-            return (<div className="min-h-screen"><Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} /><main className="max-w-7xl mx-auto px-4 py-8">{renderPage()}</main><footer className="text-center py-6 text-gray-500 text-sm border-t border-gray-800"><p>VE-System v1.0.0 | 北斗七星文創數位有限公司</p><p className="mt-1">道的1%原則 · 日拱一卒</p></footer></div>);
-        };
-        
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
+// === 資料庫 ===
+const Database = () => {
+    const [db, setDb] = useState(null);
+    const [tables, setTables] = useState([]);
+    const [table, setTable] = useState(null);
+    const [data, setData] = useState(null);
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(false);
+    const dbs = ['meta', 've', 'trade', 'education', 'business', 'clarity', 'corpus', 'taoist', 'work'];
+    
+    const loadTables = async (d) => {
+        setLoading(true); setDb(d); setTable(null); setData(null);
+        try { const r = await fetch(`${API}/api/v1/db/${d}/tables`); const j = await r.json(); setTables(j.tables || []); } catch (e) {}
+        setLoading(false);
+    };
+    const loadData = async (t) => {
+        setLoading(true); setTable(t);
+        try { const r = await fetch(`${API}/api/v1/db/${db}/table/${t}?limit=20`); const j = await r.json(); setData(j); } catch (e) {}
+        setLoading(false);
+    };
+    const filtered = tables.filter(t => t.toLowerCase().includes(search.toLowerCase()));
+    
+    return (
+        <div className="space-y-4">
+            <h1 className="text-2xl font-bold">🗄️ 資料庫瀏覽器</h1>
+            <div className="flex flex-wrap gap-2">
+                {dbs.map(d => (
+                    <button key={d} onClick={() => loadTables(d)} className={`px-3 py-1.5 rounded-lg text-sm ${db === d ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}>{d}</button>
+                ))}
+            </div>
+            {db && (
+                <div className="grid lg:grid-cols-4 gap-4">
+                    <div className="card rounded-xl p-4 border border-slate-700">
+                        <input type="text" placeholder="搜尋表..." value={search} onChange={e => setSearch(e.target.value)} className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm mb-3" />
+                        <div className="text-sm text-slate-400 mb-2">{db}.db ({filtered.length})</div>
+                        <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                            {filtered.map(t => (
+                                <button key={t} onClick={() => loadData(t)} className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${table === t ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>{t}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-3 card rounded-xl p-4 border border-slate-700">
+                        {loading ? <Loading /> : data ? (
+                            <div className="fade-in">
+                                <div className="flex justify-between mb-3">
+                                    <span className="font-semibold text-blue-400">{table}</span>
+                                    <span className="text-sm text-slate-500">{data.pagination?.total?.toLocaleString()} 筆</span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead><tr className="border-b border-slate-700">{data.columns?.slice(0, 5).map(c => <th key={c} className="text-left p-2 text-slate-400">{c}</th>)}</tr></thead>
+                                        <tbody>{data.data?.map((r, i) => <tr key={i} className="border-b border-slate-800">{data.columns?.slice(0, 5).map(c => <td key={c} className="p-2 max-w-[200px] truncate">{String(r[c] ?? '').substring(0, 50)}</td>)}</tr>)}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : <div className="text-center text-slate-500 py-16">← 選擇表</div>}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// === App ===
+const App = () => {
+    const [page, setPage] = useState('home');
+    return (
+        <div className="min-h-screen">
+            <Navbar page={page} setPage={setPage} />
+            <main className="max-w-6xl mx-auto px-4 py-6">
+                {page === 'home' && <Home setPage={setPage} />}
+                {page === 'edu' && <Education />}
+                {page === 've' && <VirtualEarth />}
+                {page === 'db' && <Database />}
+            </main>
+            <footer className="text-center py-4 text-slate-500 text-sm border-t border-slate-800">
+                <p>VE-System v1.0 | 北斗七星文創數位有限公司 | 道的1%原則 · 日拱一卒</p>
+            </footer>
+        </div>
+    );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
 </body>
 </html>
