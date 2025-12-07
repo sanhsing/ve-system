@@ -8,11 +8,9 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-        .card-glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
         .star-glow { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .loading-spin { animation: spin 1s linear infinite; }
@@ -22,240 +20,42 @@
         .bounce { animation: bounce 0.5s; }
         @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .fade-in { animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .progress-bar { transition: width 0.5s ease; }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
     <div id="root"></div>
-    
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
-        
+        const { useState, useEffect } = React;
         const API_BASE = 'https://ve-system.onrender.com';
         
-        // ============ 通用組件 ============
-        
-        const Loading = () => (
-            <div className="flex items-center justify-center p-8">
-                <div className="loading-spin text-4xl">⚙️</div>
-                <span className="ml-3 text-gray-400">載入中...</span>
-            </div>
-        );
-        
-        const StatCard = ({ title, value, subtitle, icon }) => (
-            <div className="bg-gray-800/50 backdrop-blur rounded-xl p-6 border border-gray-700 hover:border-indigo-500 transition-all">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-400 text-sm">{title}</p>
-                        <p className="text-3xl font-bold mt-1">{value}</p>
-                        {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
-                    </div>
-                    <div className="text-4xl opacity-80">{icon}</div>
-                </div>
-            </div>
-        );
-
-        const Modal = ({ isOpen, onClose, title, children }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-                    <div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-600 fade-in" onClick={e => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
-                            <h2 className="text-xl font-bold">{title}</h2>
-                            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
-                        </div>
-                        <div className="p-4">{children}</div>
-                    </div>
-                </div>
-            );
-        };
+        const Loading = () => (<div className="flex items-center justify-center p-8"><div className="loading-spin text-4xl">⚙️</div><span className="ml-3 text-gray-400">載入中...</span></div>);
+        const StatCard = ({ title, value, subtitle, icon }) => (<div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:border-indigo-500 transition-all"><div className="flex items-center justify-between"><div><p className="text-gray-400 text-sm">{title}</p><p className="text-3xl font-bold mt-1">{value}</p>{subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}</div><div className="text-4xl opacity-80">{icon}</div></div></div>);
+        const Modal = ({ isOpen, onClose, title, children }) => { if (!isOpen) return null; return (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}><div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-600 fade-in" onClick={e => e.stopPropagation()}><div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center"><h2 className="text-xl font-bold">{title}</h2><button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button></div><div className="p-4">{children}</div></div></div>); };
         
         const Navbar = ({ currentPage, setCurrentPage }) => {
-            const navItems = [
-                { id: 'dashboard', name: '儀表板', icon: '📊' },
-                { id: 'qixing', name: '北斗七星', icon: '⭐' },
-                { id: 'databases', name: '資料庫', icon: '🗄️' },
-                { id: 'trade', name: '交易系統', icon: '📈' },
-                { id: 'education', name: '教育系統', icon: '📚' },
-                { id: 've', name: '虛擬地球', icon: '🌍' },
-            ];
-            
-            return (
-                <nav className="bg-gray-900/50 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50">
-                    <div className="max-w-7xl mx-auto px-4">
-                        <div className="flex items-center justify-between h-16">
-                            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setCurrentPage('dashboard')}>
-                                <span className="text-2xl">🌌</span>
-                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    VE-System
-                                </span>
-                            </div>
-                            <div className="flex space-x-1 overflow-x-auto">
-                                {navItems.map(item => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => setCurrentPage(item.id)}
-                                        className={`px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap ${
-                                            currentPage === item.id ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        <span className="mr-1">{item.icon}</span>
-                                        <span className="hidden md:inline">{item.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-            );
+            const navItems = [{ id: 'dashboard', name: '儀表板', icon: '📊' },{ id: 'qixing', name: '北斗七星', icon: '⭐' },{ id: 'databases', name: '資料庫', icon: '🗄️' },{ id: 'trade', name: '交易系統', icon: '📈' },{ id: 'education', name: '教育系統', icon: '📚' },{ id: 've', name: '虛擬地球', icon: '🌍' }];
+            return (<nav className="bg-gray-900/50 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50"><div className="max-w-7xl mx-auto px-4"><div className="flex items-center justify-between h-16"><div className="flex items-center space-x-2 cursor-pointer" onClick={() => setCurrentPage('dashboard')}><span className="text-2xl">🌌</span><span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">VE-System</span></div><div className="flex space-x-1 overflow-x-auto">{navItems.map(item => (<button key={item.id} onClick={() => setCurrentPage(item.id)} className={`px-3 py-2 rounded-lg text-sm transition-all ${currentPage === item.id ? 'bg-indigo-600' : 'text-gray-300 hover:bg-gray-700'}`}><span className="mr-1">{item.icon}</span><span className="hidden md:inline">{item.name}</span></button>))}</div></div></div></nav>);
         };
-        
-        // ============ 儀表板 ============
         
         const Dashboard = () => {
             const [status, setStatus] = useState(null);
             const [loading, setLoading] = useState(true);
-            
-            useEffect(() => {
-                fetch(`${API_BASE}/api/v1/status`)
-                    .then(res => res.json())
-                    .then(data => { setStatus(data); setLoading(false); })
-                    .catch(() => setLoading(false));
-            }, []);
-            
+            useEffect(() => { fetch(`${API_BASE}/api/v1/status`).then(r => r.json()).then(d => { setStatus(d); setLoading(false); }).catch(() => setLoading(false)); }, []);
             if (loading) return <Loading />;
-            
-            return (
-                <div className="space-y-6">
-                    <div className="text-center py-8">
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            虛擾地球系統
-                        </h1>
-                        <p className="text-gray-400 mt-2">Virtual Earth System</p>
-                        <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-900/50 rounded-full border border-green-500">
-                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                            <span className="text-green-400">系統運行中</span>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StatCard title="系統成熟度" value={status?.maturity || '90.7%'} subtitle="產品級" icon="🎯" />
-                        <StatCard title="資料庫" value={status?.totals?.databases || 9} subtitle="九宮格局" icon="🗄️" />
-                        <StatCard title="資料表" value={status?.totals?.tables?.toLocaleString()} subtitle="結構完整" icon="📋" />
-                        <StatCard title="資料筆數" value={status?.totals?.records?.toLocaleString()} subtitle="持續累積" icon="📊" />
-                    </div>
-                    
-                    <div className="bg-gray-800/50 backdrop-blur rounded-xl p-6 border border-gray-700">
-                        <h2 className="text-xl font-semibold mb-4">🗄️ 九庫統計</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {status?.databases && Object.entries(status.databases)
-                                .sort((a, b) => (b[1].records || 0) - (a[1].records || 0))
-                                .map(([name, db]) => (
-                                <div key={name} className="bg-gray-900/50 rounded-lg p-4 border border-gray-600 hover:border-indigo-500 transition-all">
-                                    <div className="flex justify-between items-center">
-                                        <span className="font-medium text-indigo-400">{name}.db</span>
-                                        <span className="text-xs text-gray-500">{db.tables} 表</span>
-                                    </div>
-                                    <div className="mt-2">
-                                        <div className="text-2xl font-bold">{(db.records || 0).toLocaleString()}</div>
-                                        <div className="text-xs text-gray-500">筆資料</div>
-                                    </div>
-                                    <div className="mt-2 bg-gray-700 rounded-full h-2">
-                                        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full progress-bar"
-                                            style={{ width: `${Math.min((db.records || 0) / 1500, 100)}%` }}></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
+            return (<div className="space-y-6"><div className="text-center py-8"><h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">虛擾地球系統</h1><p className="text-gray-400 mt-2">Virtual Earth System</p><div className="mt-4 inline-flex items-center px-4 py-2 bg-green-900/50 rounded-full border border-green-500"><span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span><span className="text-green-400">系統運行中</span></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><StatCard title="系統成熟度" value={status?.maturity || '90.7%'} subtitle="產品級" icon="🎯" /><StatCard title="資料庫" value={status?.totals?.databases || 9} subtitle="九宮格局" icon="🗄️" /><StatCard title="資料表" value={status?.totals?.tables?.toLocaleString()} subtitle="結構完整" icon="📋" /><StatCard title="資料筆數" value={status?.totals?.records?.toLocaleString()} subtitle="持續累積" icon="📊" /></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">🗄️ 九庫統計</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{status?.databases && Object.entries(status.databases).sort((a, b) => (b[1].records || 0) - (a[1].records || 0)).map(([name, db]) => (<div key={name} className="bg-gray-900/50 rounded-lg p-4 border border-gray-600"><div className="flex justify-between"><span className="text-indigo-400">{name}.db</span><span className="text-xs text-gray-500">{db.tables} 表</span></div><div className="text-2xl font-bold mt-2">{(db.records || 0).toLocaleString()}</div><div className="mt-2 bg-gray-700 rounded-full h-2"><div className="bg-indigo-500 h-2 rounded-full progress-bar" style={{ width: `${Math.min((db.records || 0) / 1500, 100)}%` }}></div></div></div>))}</div></div></div>);
         };
-        
-        // ============ 北斗七星 ============
         
         const QiXing = () => {
             const [qixing, setQixing] = useState(null);
             const [loading, setLoading] = useState(true);
             const [selectedStar, setSelectedStar] = useState(null);
-            
-            useEffect(() => {
-                fetch(`${API_BASE}/api/v1/qixing`)
-                    .then(res => res.json())
-                    .then(data => { setQixing(data); setLoading(false); })
-                    .catch(() => setLoading(false));
-            }, []);
-            
+            useEffect(() => { fetch(`${API_BASE}/api/v1/qixing`).then(r => r.json()).then(d => { setQixing(d); setLoading(false); }).catch(() => setLoading(false)); }, []);
             if (loading) return <Loading />;
-            
-            const starDetails = {
-                '光蘊': { desc: '掌管系統願景與核心價值，確保所有決策符合道的原則', color: 'from-yellow-400 to-orange-500' },
-                '織明': { desc: '負責系統架構設計，編織各模組間的連結與關係', color: 'from-blue-400 to-cyan-500' },
-                '理樞': { desc: '處理邏輯運算與演算法，是系統的智慧核心', color: 'from-purple-400 to-pink-500' },
-                '澄書': { desc: '沉澱知識與文檔，建立系統的記憶與傳承', color: 'from-green-400 to-teal-500' },
-                '流祇': { desc: '優化流程與效率，確保系統順暢運行', color: 'from-red-400 to-rose-500' },
-                '星殼': { desc: '呈現使用者介面，是系統與外界的接觸面', color: 'from-indigo-400 to-violet-500' },
-                '璃語': { desc: '處理溝通與翻譯，連接不同系統與使用者', color: 'from-amber-400 to-yellow-500' },
-            };
-            
-            return (
-                <div className="space-y-6">
-                    <div className="text-center py-4">
-                        <h1 className="text-3xl font-bold">⭐ 北斗七星協作體系</h1>
-                        <p className="text-gray-400 mt-2">七星對齊率: {qixing?.alignment}</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            <h3 className="text-lg font-semibold mb-4">選擇一顆星</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                {qixing?.stars?.map(star => (
-                                    <button key={star.id} onClick={() => setSelectedStar(star)}
-                                        className={`p-4 rounded-lg border transition-all text-left ${
-                                            selectedStar?.id === star.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'
-                                        }`}>
-                                        <div className="flex items-center space-x-2">
-                                            <span className="text-2xl star-glow">⭐</span>
-                                            <div>
-                                                <div className="font-bold">{star.name}</div>
-                                                <div className="text-sm text-gray-400">{star.role}</div>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            {selectedStar ? (
-                                <div className="space-y-4 fade-in">
-                                    <div className={`text-center p-6 rounded-lg bg-gradient-to-r ${starDetails[selectedStar.name]?.color}`}>
-                                        <div className="text-6xl mb-4">⭐</div>
-                                        <h2 className="text-2xl font-bold">{selectedStar.name}</h2>
-                                        <p className="text-lg">{selectedStar.role}</p>
-                                    </div>
-                                    <div className="p-4 bg-gray-900/50 rounded-lg">
-                                        <h4 className="font-semibold mb-2">職責說明</h4>
-                                        <p className="text-gray-400">{starDetails[selectedStar.name]?.desc}</p>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
-                                        <span>狀態</span>
-                                        <span className="flex items-center text-green-400">
-                                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>運行中
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-500 py-20">← 點擊選擇一顆星查看詳情</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
+            const starDetails = { '光蘊': { desc: '掌管系統願景與核心價值', color: 'from-yellow-400 to-orange-500' }, '織明': { desc: '負責系統架構設計', color: 'from-blue-400 to-cyan-500' }, '理樞': { desc: '處理邏輯運算與演算法', color: 'from-purple-400 to-pink-500' }, '澄書': { desc: '沉澱知識與文檔', color: 'from-green-400 to-teal-500' }, '流祇': { desc: '優化流程與效率', color: 'from-red-400 to-rose-500' }, '星殼': { desc: '呈現使用者介面', color: 'from-indigo-400 to-violet-500' }, '璃語': { desc: '處理溝通與翻譯', color: 'from-amber-400 to-yellow-500' } };
+            return (<div className="space-y-6"><div className="text-center py-4"><h1 className="text-3xl font-bold">⭐ 北斗七星協作體系</h1><p className="text-gray-400 mt-2">對齊率: {qixing?.alignment}</p></div><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h3 className="font-semibold mb-4">選擇一顆星</h3><div className="grid grid-cols-2 gap-3">{qixing?.stars?.map(star => (<button key={star.id} onClick={() => setSelectedStar(star)} className={`p-4 rounded-lg border text-left ${selectedStar?.id === star.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'}`}><div className="flex items-center gap-2"><span className="text-2xl">⭐</span><div><div className="font-bold">{star.name}</div><div className="text-sm text-gray-400">{star.role}</div></div></div></button>))}</div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">{selectedStar ? (<div className="space-y-4 fade-in"><div className={`text-center p-6 rounded-lg bg-gradient-to-r ${starDetails[selectedStar.name]?.color}`}><div className="text-6xl mb-4">⭐</div><h2 className="text-2xl font-bold">{selectedStar.name}</h2><p>{selectedStar.role}</p></div><div className="p-4 bg-gray-900/50 rounded-lg"><h4 className="font-semibold mb-2">職責</h4><p className="text-gray-400">{starDetails[selectedStar.name]?.desc}</p></div></div>) : (<div className="text-center text-gray-500 py-20">← 點擊選擇星</div>)}</div></div></div>);
         };
-        
-        // ============ 資料庫瀏覽器 ============
         
         const Databases = () => {
             const [selectedDb, setSelectedDb] = useState(null);
@@ -264,101 +64,15 @@
             const [tableData, setTableData] = useState(null);
             const [loading, setLoading] = useState(false);
             const [searchTerm, setSearchTerm] = useState('');
-            
             const databases = ['meta', 've', 'trade', 'education', 'business', 'clarity', 'corpus', 'taoist', 'work'];
-            
-            const loadTables = async (db) => {
-                setLoading(true);
-                setSelectedDb(db);
-                setSelectedTable(null);
-                setTableData(null);
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/db/${db}/tables`);
-                    const data = await res.json();
-                    setTables(data.tables || []);
-                } catch (err) { console.error(err); }
-                setLoading(false);
-            };
-            
-            const loadTableData = async (table) => {
-                setLoading(true);
-                setSelectedTable(table);
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/db/${selectedDb}/table/${table}?limit=20`);
-                    const data = await res.json();
-                    setTableData(data);
-                } catch (err) { console.error(err); }
-                setLoading(false);
-            };
-            
+            const loadTables = async (db) => { setLoading(true); setSelectedDb(db); setSelectedTable(null); setTableData(null); try { const res = await fetch(`${API_BASE}/api/v1/db/${db}/tables`); const data = await res.json(); setTables(data.tables || []); } catch (e) {} setLoading(false); };
+            const loadTableData = async (table) => { setLoading(true); setSelectedTable(table); try { const res = await fetch(`${API_BASE}/api/v1/db/${selectedDb}/table/${table}?limit=20`); const data = await res.json(); setTableData(data); } catch (e) {} setLoading(false); };
             const filteredTables = tables.filter(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-            
-            return (
-                <div className="space-y-6">
-                    <h1 className="text-3xl font-bold">🗄️ 資料庫瀏覽器</h1>
-                    <div className="flex flex-wrap gap-2">
-                        {databases.map(db => (
-                            <button key={db} onClick={() => loadTables(db)}
-                                className={`px-4 py-2 rounded-lg transition-all ${selectedDb === db ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
-                                {db}.db
-                            </button>
-                        ))}
-                    </div>
-                    
-                    {selectedDb && (
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                                <input type="text" placeholder="搜尋資料表..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm focus:border-indigo-500 outline-none mb-3" />
-                                <h3 className="font-semibold mb-2 text-indigo-400">{selectedDb}.db ({filteredTables.length} 表)</h3>
-                                <div className="space-y-1 max-h-[500px] overflow-y-auto">
-                                    {filteredTables.map(table => (
-                                        <button key={table} onClick={() => loadTableData(table)}
-                                            className={`w-full text-left px-3 py-2 rounded text-sm transition-all ${selectedTable === table ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-                                            {table}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <div className="lg:col-span-3 bg-gray-800/50 rounded-xl p-4 border border-gray-700 overflow-hidden">
-                                {loading ? <Loading /> : tableData ? (
-                                    <div className="fade-in">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h3 className="font-semibold text-indigo-400">{selectedTable}</h3>
-                                            <span className="text-sm text-gray-500">共 {tableData.pagination?.total?.toLocaleString()} 筆</span>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead><tr className="border-b border-gray-700">
-                                                    {tableData.columns?.slice(0, 6).map(col => (<th key={col} className="text-left p-2 text-gray-400 whitespace-nowrap">{col}</th>))}
-                                                </tr></thead>
-                                                <tbody>
-                                                    {tableData.data?.map((row, i) => (
-                                                        <tr key={i} className="border-b border-gray-800 hover:bg-gray-700/50">
-                                                            {tableData.columns?.slice(0, 6).map(col => (
-                                                                <td key={col} className="p-2 max-w-[200px] truncate">
-                                                                    {typeof row[col] === 'object' ? JSON.stringify(row[col]).substring(0, 30) + '...' : String(row[col] ?? '').substring(0, 50)}
-                                                                </td>
-                                                            ))}
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ) : (<div className="text-center text-gray-500 py-20">← 選擇一個資料表查看內容</div>)}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+            return (<div className="space-y-6"><h1 className="text-3xl font-bold">🗄️ 資料庫瀏覽器</h1><div className="flex flex-wrap gap-2">{databases.map(db => (<button key={db} onClick={() => loadTables(db)} className={`px-4 py-2 rounded-lg ${selectedDb === db ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>{db}.db</button>))}</div>{selectedDb && (<div className="grid grid-cols-1 lg:grid-cols-4 gap-6"><div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700"><input type="text" placeholder="搜尋..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm mb-3" /><h3 className="font-semibold mb-2 text-indigo-400">{selectedDb}.db ({filteredTables.length})</h3><div className="space-y-1 max-h-[500px] overflow-y-auto">{filteredTables.map(table => (<button key={table} onClick={() => loadTableData(table)} className={`w-full text-left px-3 py-2 rounded text-sm ${selectedTable === table ? 'bg-indigo-600' : 'hover:bg-gray-700'}`}>{table}</button>))}</div></div><div className="lg:col-span-3 bg-gray-800/50 rounded-xl p-4 border border-gray-700">{loading ? <Loading /> : tableData ? (<div className="fade-in"><div className="flex justify-between mb-3"><h3 className="font-semibold text-indigo-400">{selectedTable}</h3><span className="text-sm text-gray-500">共 {tableData.pagination?.total?.toLocaleString()} 筆</span></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-gray-700">{tableData.columns?.slice(0, 6).map(col => (<th key={col} className="text-left p-2 text-gray-400">{col}</th>))}</tr></thead><tbody>{tableData.data?.map((row, i) => (<tr key={i} className="border-b border-gray-800 hover:bg-gray-700/50">{tableData.columns?.slice(0, 6).map(col => (<td key={col} className="p-2 max-w-[200px] truncate">{String(row[col] ?? '').substring(0, 50)}</td>))}</tr>))}</tbody></table></div></div>) : (<div className="text-center text-gray-500 py-20">← 選擇資料表</div>)}</div></div>)}</div>);
         };
 
-        // ============ 教育系統 (加強版) ============
-        
         const Education = () => {
-            const [mode, setMode] = useState('menu'); // menu, quiz, result
+            const [mode, setMode] = useState('menu');
             const [questions, setQuestions] = useState([]);
             const [currentQ, setCurrentQ] = useState(0);
             const [selected, setSelected] = useState(null);
@@ -366,307 +80,61 @@
             const [score, setScore] = useState({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
             const [loading, setLoading] = useState(false);
             const [subject, setSubject] = useState('all');
-            const [difficulty, setDifficulty] = useState(10);
+            const [questionCount, setQuestionCount] = useState(10);
             const [history, setHistory] = useState([]);
             const [timeLeft, setTimeLeft] = useState(30);
             const [timerActive, setTimerActive] = useState(false);
 
-            const subjects = [
-                { id: 'all', name: '全部科目', icon: '📚' },
-                { id: '數學', name: '數學', icon: '🔢' },
-                { id: '國文', name: '國文', icon: '📖' },
-                { id: '英文', name: '英文', icon: '🔤' },
-                { id: '理化', name: '理化', icon: '🔬' },
-                { id: '社會', name: '社會', icon: '🌍' },
-            ];
+            const subjects = [{ id: 'all', name: '全部科目', icon: '📚' },{ id: '數學', name: '數學', icon: '🔢' },{ id: '國文', name: '國文', icon: '📖' },{ id: '英文', name: '英文', icon: '🔤' },{ id: '自然', name: '自然科學', icon: '🔬' },{ id: '社會', name: '社會', icon: '🌍' }];
 
-            useEffect(() => {
-                if (timerActive && timeLeft > 0) {
-                    const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-                    return () => clearTimeout(timer);
-                } else if (timeLeft === 0 && timerActive) {
-                    handleTimeout();
-                }
-            }, [timeLeft, timerActive]);
-
-            const handleTimeout = () => {
-                setTimerActive(false);
-                setResult({ correct: false, correct_answer: questions[currentQ]?.answer, timeout: true });
-                setScore(prev => ({ ...prev, total: prev.total + 1, streak: 0 }));
-                setHistory(prev => [...prev, { ...questions[currentQ], correct: false, timeout: true }]);
-            };
+            useEffect(() => { if (timerActive && timeLeft > 0) { const t = setTimeout(() => setTimeLeft(v => v - 1), 1000); return () => clearTimeout(t); } else if (timeLeft === 0 && timerActive) { handleTimeout(); } }, [timeLeft, timerActive]);
+            const handleTimeout = () => { setTimerActive(false); setResult({ correct: false, correct_answer: questions[currentQ]?.answer, timeout: true }); setScore(p => ({ ...p, total: p.total + 1, streak: 0 })); setHistory(p => [...p, { ...questions[currentQ], correct: false }]); };
             
             const loadQuestions = async () => {
                 setLoading(true);
                 try {
-                    const url = subject === 'all' 
-                        ? `${API_BASE}/api/v1/education/questions?limit=${difficulty}`
-                        : `${API_BASE}/api/v1/education/questions?limit=${difficulty}&subject=${subject}`;
+                    const url = subject === 'all' ? `${API_BASE}/api/v1/education/questions?limit=${questionCount}` : `${API_BASE}/api/v1/education/questions?limit=${questionCount}&subject=${subject}`;
                     const res = await fetch(url);
                     const data = await res.json();
-                    setQuestions(data.questions || []);
-                    setCurrentQ(0);
-                    setScore({ correct: 0, total: 0, streak: 0, maxStreak: 0 });
-                    setSelected(null);
-                    setResult(null);
-                    setHistory([]);
-                    setMode('quiz');
-                    setTimeLeft(30);
-                    setTimerActive(true);
-                } catch (err) { console.error(err); }
+                    if (data.questions?.length > 0) {
+                        setQuestions(data.questions); setCurrentQ(0); setScore({ correct: 0, total: 0, streak: 0, maxStreak: 0 }); setSelected(null); setResult(null); setHistory([]); setMode('quiz'); setTimeLeft(30); setTimerActive(true);
+                    } else { alert('此科目沒有題目，請選其他科目'); }
+                } catch (e) { alert('載入失敗'); }
                 setLoading(false);
             };
             
             const checkAnswer = async (answer) => {
                 if (result) return;
-                setSelected(answer);
-                setTimerActive(false);
-                
+                setSelected(answer); setTimerActive(false);
                 try {
-                    const res = await fetch(`${API_BASE}/api/v1/education/check`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ question_id: questions[currentQ].question_id, answer })
-                    });
+                    const res = await fetch(`${API_BASE}/api/v1/education/check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_id: questions[currentQ].question_id, answer }) });
                     const data = await res.json();
                     setResult(data);
-                    
                     const newStreak = data.correct ? score.streak + 1 : 0;
-                    setScore(prev => ({
-                        correct: prev.correct + (data.correct ? 1 : 0),
-                        total: prev.total + 1,
-                        streak: newStreak,
-                        maxStreak: Math.max(prev.maxStreak, newStreak)
-                    }));
-                    setHistory(prev => [...prev, { ...questions[currentQ], correct: data.correct, userAnswer: answer }]);
-                } catch (err) { console.error(err); }
+                    setScore(p => ({ correct: p.correct + (data.correct ? 1 : 0), total: p.total + 1, streak: newStreak, maxStreak: Math.max(p.maxStreak, newStreak) }));
+                    setHistory(p => [...p, { ...questions[currentQ], correct: data.correct }]);
+                } catch (e) {}
             };
             
-            const nextQuestion = () => {
-                if (currentQ < questions.length - 1) {
-                    setCurrentQ(prev => prev + 1);
-                    setSelected(null);
-                    setResult(null);
-                    setTimeLeft(30);
-                    setTimerActive(true);
-                } else {
-                    setMode('result');
-                }
-            };
+            const nextQuestion = () => { if (currentQ < questions.length - 1) { setCurrentQ(p => p + 1); setSelected(null); setResult(null); setTimeLeft(30); setTimerActive(true); } else { setMode('result'); } };
 
-            // 主選單
             if (mode === 'menu') {
-                return (
-                    <div className="space-y-6">
-                        <h1 className="text-3xl font-bold">📚 教育系統</h1>
-                        
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                                <h2 className="text-xl font-semibold mb-4">🎯 選擇科目</h2>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {subjects.map(s => (
-                                        <button key={s.id} onClick={() => setSubject(s.id)}
-                                            className={`p-4 rounded-lg border transition-all ${subject === s.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'}`}>
-                                            <span className="text-2xl mr-2">{s.icon}</span>
-                                            <span>{s.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                                <h2 className="text-xl font-semibold mb-4">📊 題目數量</h2>
-                                <div className="flex gap-3 mb-6">
-                                    {[5, 10, 15, 20].map(n => (
-                                        <button key={n} onClick={() => setDifficulty(n)}
-                                            className={`px-6 py-3 rounded-lg border transition-all ${difficulty === n ? 'bg-green-600 border-green-400' : 'bg-gray-900/50 border-gray-600 hover:border-green-500'}`}>
-                                            {n} 題
-                                        </button>
-                                    ))}
-                                </div>
-                                
-                                <div className="bg-gray-900/50 p-4 rounded-lg mb-4">
-                                    <div className="flex justify-between text-sm text-gray-400 mb-2">
-                                        <span>科目: {subjects.find(s => s.id === subject)?.name}</span>
-                                        <span>題數: {difficulty}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm text-gray-400">
-                                        <span>時間限制: 每題 30 秒</span>
-                                        <span>模式: 標準測驗</span>
-                                    </div>
-                                </div>
-                                
-                                <button onClick={loadQuestions} disabled={loading}
-                                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg font-bold text-lg transition-all">
-                                    {loading ? '載入中...' : '🚀 開始挑戰'}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-xl font-semibold mb-4">🏆 遊戲規則</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-gray-900/50 p-4 rounded-lg text-center">
-                                    <div className="text-3xl mb-2">⏱️</div>
-                                    <div className="font-semibold">計時挑戰</div>
-                                    <div className="text-sm text-gray-400">每題 30 秒限時</div>
-                                </div>
-                                <div className="bg-gray-900/50 p-4 rounded-lg text-center">
-                                    <div className="text-3xl mb-2">🔥</div>
-                                    <div className="font-semibold">連續答對</div>
-                                    <div className="text-sm text-gray-400">累積連勝紀錄</div>
-                                </div>
-                                <div className="bg-gray-900/50 p-4 rounded-lg text-center">
-                                    <div className="text-3xl mb-2">📝</div>
-                                    <div className="font-semibold">詳細解析</div>
-                                    <div className="text-sm text-gray-400">答題後顯示說明</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
+                return (<div className="space-y-6"><h1 className="text-3xl font-bold">📚 教育系統 - 知識挑戰</h1><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">🎯 選擇科目</h2><div className="grid grid-cols-2 gap-3">{subjects.map(s => (<button key={s.id} onClick={() => setSubject(s.id)} className={`p-4 rounded-lg border text-left ${subject === s.id ? 'bg-indigo-600 border-indigo-400' : 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'}`}><span className="text-2xl mr-2">{s.icon}</span>{s.name}</button>))}</div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">📊 題數</h2><div className="flex gap-2 mb-4">{[5, 10, 15, 20].map(n => (<button key={n} onClick={() => setQuestionCount(n)} className={`px-4 py-2 rounded-lg ${questionCount === n ? 'bg-green-600' : 'bg-gray-700'}`}>{n} 題</button>))}</div><button onClick={loadQuestions} disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg font-bold text-lg">{loading ? '載入中...' : '🚀 開始挑戰'}</button></div></div></div>);
             }
 
-            // 測驗中
             if (mode === 'quiz') {
-                const q = questions[currentQ];
-                if (!q) return <Loading />;
+                const q = questions[currentQ]; if (!q) return <Loading />;
                 const options = Array.isArray(q.options) ? q.options : [];
-                const progress = ((currentQ + 1) / questions.length) * 100;
-                
-                return (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setMode('menu')} className="text-gray-400 hover:text-white">← 返回</button>
-                            <div className="flex items-center space-x-4">
-                                {score.streak >= 3 && <span className="text-orange-400">🔥 {score.streak} 連勝!</span>}
-                                <span className="text-green-400 font-bold">{score.correct}</span>
-                                <span className="text-gray-500">/</span>
-                                <span className="text-gray-400">{score.total}</span>
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            {/* 進度條 */}
-                            <div className="mb-4">
-                                <div className="flex justify-between text-sm text-gray-400 mb-1">
-                                    <span>題目 {currentQ + 1} / {questions.length}</span>
-                                    <span className={timeLeft <= 10 ? 'text-red-400' : ''}>{timeLeft}s</span>
-                                </div>
-                                <div className="bg-gray-700 rounded-full h-2">
-                                    <div className="bg-indigo-500 h-2 rounded-full progress-bar" style={{ width: `${progress}%` }}></div>
-                                </div>
-                                <div className="bg-gray-700 rounded-full h-1 mt-1">
-                                    <div className={`h-1 rounded-full progress-bar ${timeLeft <= 10 ? 'bg-red-500' : 'bg-green-500'}`} 
-                                        style={{ width: `${(timeLeft / 30) * 100}%` }}></div>
-                                </div>
-                            </div>
-                            
-                            <div className="mb-2 text-sm text-indigo-400">{q.subject}</div>
-                            <h2 className="text-xl mb-6">{q.question_text}</h2>
-                            
-                            <div className="space-y-3">
-                                {options.map((opt, i) => {
-                                    const letter = opt.charAt(0);
-                                    const isSelected = selected === letter;
-                                    const isCorrect = result?.correct_answer === letter;
-                                    const isWrong = isSelected && !result?.correct;
-                                    
-                                    let btnClass = 'bg-gray-900/50 border-gray-600 hover:border-indigo-500';
-                                    if (result) {
-                                        if (isCorrect) btnClass = 'bg-green-900/50 border-green-500 bounce';
-                                        else if (isWrong) btnClass = 'bg-red-900/50 border-red-500 shake';
-                                    }
-                                    
-                                    return (
-                                        <button key={i} onClick={() => checkAnswer(letter)} disabled={result !== null}
-                                            className={`w-full text-left p-4 rounded-lg border transition-all ${btnClass}`}>
-                                            {opt}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            
-                            {result && (
-                                <div className={`mt-6 p-4 rounded-lg fade-in ${result.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}>
-                                    <div className="font-bold mb-2">
-                                        {result.timeout ? '⏰ 時間到！' : result.correct ? '✅ 答對了！' : `❌ 答錯了`}
-                                        {!result.correct && <span className="ml-2">正確答案是 {result.correct_answer}</span>}
-                                    </div>
-                                    {q.explanation && <p className="text-gray-400 text-sm">{q.explanation}</p>}
-                                </div>
-                            )}
-                            
-                            {result && (
-                                <button onClick={nextQuestion}
-                                    className="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold">
-                                    {currentQ < questions.length - 1 ? '下一題 →' : '查看結果 🏆'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
+                return (<div className="space-y-6 max-w-3xl mx-auto"><div className="flex justify-between items-center"><button onClick={() => { setMode('menu'); setTimerActive(false); }} className="text-gray-400 hover:text-white">← 返回</button><div className="flex items-center gap-4">{score.streak >= 3 && <span className="text-orange-400 bounce">🔥 {score.streak}</span>}<span className="text-green-400 font-bold">{score.correct}</span><span className="text-gray-500">/</span><span className="text-gray-400">{score.total}</span></div></div><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><div className="mb-4"><div className="flex justify-between text-sm text-gray-400 mb-1"><span>題目 {currentQ + 1} / {questions.length}</span><span className={timeLeft <= 10 ? 'text-red-400 font-bold' : ''}>{timeLeft}s</span></div><div className="bg-gray-700 rounded-full h-2 mb-1"><div className="bg-indigo-500 h-2 rounded-full progress-bar" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}></div></div><div className="bg-gray-700 rounded-full h-1"><div className={`h-1 rounded-full progress-bar ${timeLeft <= 10 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${(timeLeft / 30) * 100}%` }}></div></div></div><div className="mb-2"><span className="text-sm text-indigo-400 bg-indigo-900/30 px-2 py-1 rounded">{q.subject || q.subject_id}</span></div><h2 className="text-xl mb-6">{q.question_text}</h2><div className="space-y-3">{options.map((opt, i) => { const letter = opt.charAt(0); const isSelected = selected === letter; const isCorrect = result?.correct_answer === letter; const isWrong = isSelected && !result?.correct; let btnClass = 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'; if (result) { if (isCorrect) btnClass = 'bg-green-900/50 border-green-500 bounce'; else if (isWrong) btnClass = 'bg-red-900/50 border-red-500 shake'; else btnClass = 'bg-gray-900/50 border-gray-700 opacity-50'; } return (<button key={i} onClick={() => checkAnswer(letter)} disabled={result !== null} className={`w-full text-left p-4 rounded-lg border-2 transition-all ${btnClass}`}><span className="font-bold mr-2">{letter}.</span>{opt.substring(2)}</button>); })}</div>{result && (<div className={`mt-6 p-4 rounded-lg fade-in ${result.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}><div className="font-bold text-lg">{result.timeout ? '⏰ 時間到！' : result.correct ? '✅ 答對了！' : '❌ 答錯了'}{!result.correct && <span className="ml-2 text-green-400">正確: {result.correct_answer}</span>}</div>{q.explanation && <p className="text-gray-300 mt-2">{q.explanation}</p>}</div>)}{result && (<button onClick={nextQuestion} className="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold text-lg">{currentQ < questions.length - 1 ? '下一題 →' : '查看結果 🏆'}</button>)}</div></div>);
             }
 
-            // 結果頁
             if (mode === 'result') {
                 const percentage = Math.round((score.correct / score.total) * 100);
                 const grade = percentage >= 90 ? 'S' : percentage >= 80 ? 'A' : percentage >= 70 ? 'B' : percentage >= 60 ? 'C' : 'D';
                 const gradeColors = { S: 'text-yellow-400', A: 'text-green-400', B: 'text-blue-400', C: 'text-orange-400', D: 'text-red-400' };
-                
-                return (
-                    <div className="space-y-6">
-                        <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700 text-center">
-                            <div className="text-6xl mb-4">🎉</div>
-                            <h1 className="text-3xl font-bold mb-2">挑戰完成！</h1>
-                            
-                            <div className={`text-8xl font-bold my-6 ${gradeColors[grade]}`}>{grade}</div>
-                            
-                            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-6">
-                                <div className="bg-gray-900/50 p-4 rounded-lg">
-                                    <div className="text-2xl font-bold text-green-400">{score.correct}</div>
-                                    <div className="text-sm text-gray-500">答對</div>
-                                </div>
-                                <div className="bg-gray-900/50 p-4 rounded-lg">
-                                    <div className="text-2xl font-bold">{percentage}%</div>
-                                    <div className="text-sm text-gray-500">正確率</div>
-                                </div>
-                                <div className="bg-gray-900/50 p-4 rounded-lg">
-                                    <div className="text-2xl font-bold text-orange-400">{score.maxStreak}</div>
-                                    <div className="text-sm text-gray-500">最高連勝</div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex gap-4 justify-center">
-                                <button onClick={() => setMode('menu')} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg">
-                                    返回選單
-                                </button>
-                                <button onClick={loadQuestions} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg">
-                                    再玩一次
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-xl font-semibold mb-4">📋 答題紀錄</h2>
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                {history.map((h, i) => (
-                                    <div key={i} className={`p-3 rounded-lg flex items-start gap-3 ${h.correct ? 'bg-green-900/20' : 'bg-red-900/20'}`}>
-                                        <span className="text-xl">{h.correct ? '✅' : '❌'}</span>
-                                        <div className="flex-1">
-                                            <div className="text-sm text-gray-400">{h.subject}</div>
-                                            <div className="text-sm">{h.question_text?.substring(0, 60)}...</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                );
+                return (<div className="space-y-6 max-w-2xl mx-auto"><div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700 text-center"><div className="text-6xl mb-4">🎉</div><h1 className="text-3xl font-bold mb-2">挑戰完成！</h1><div className={`text-9xl font-bold my-6 ${gradeColors[grade]}`}>{grade}</div><div className="grid grid-cols-3 gap-4 mb-6"><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold text-green-400">{score.correct}</div><div className="text-sm text-gray-500">答對</div></div><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold">{percentage}%</div><div className="text-sm text-gray-500">正確率</div></div><div className="bg-gray-900/50 p-4 rounded-lg"><div className="text-3xl font-bold text-orange-400">{score.maxStreak}</div><div className="text-sm text-gray-500">最高連勝</div></div></div><div className="flex gap-4 justify-center"><button onClick={() => setMode('menu')} className="px-6 py-3 bg-gray-700 rounded-lg">返回</button><button onClick={loadQuestions} className="px-6 py-3 bg-indigo-600 rounded-lg">再玩一次</button></div></div></div>);
             }
         };
-        
-        // ============ 交易系統 (加強版) ============
         
         const Trade = () => {
             const [strategies, setStrategies] = useState([]);
@@ -675,429 +143,44 @@
             const [loading, setLoading] = useState(true);
             const [selectedItem, setSelectedItem] = useState(null);
             const [modalOpen, setModalOpen] = useState(false);
-            
-            useEffect(() => {
-                Promise.all([
-                    fetch(`${API_BASE}/api/v1/trade/strategies`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/v1/trade/indicators`).then(r => r.json())
-                ]).then(([strat, ind]) => {
-                    setStrategies(strat.strategies || []);
-                    setIndicators(ind.indicators || []);
-                    setLoading(false);
-                }).catch(() => setLoading(false));
-            }, []);
-
-            const openDetail = (item, type) => {
-                setSelectedItem({ ...item, type });
-                setModalOpen(true);
-            };
-            
+            useEffect(() => { Promise.all([fetch(`${API_BASE}/api/v1/trade/strategies`).then(r => r.json()), fetch(`${API_BASE}/api/v1/trade/indicators`).then(r => r.json())]).then(([s, i]) => { setStrategies(s.strategies || []); setIndicators(i.indicators || []); setLoading(false); }).catch(() => setLoading(false)); }, []);
             if (loading) return <Loading />;
-            
-            return (
-                <div className="space-y-6">
-                    <h1 className="text-3xl font-bold">📈 交易系統</h1>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <StatCard title="策略數" value={strategies.length} icon="📊" />
-                        <StatCard title="技術指標" value={indicators.length} icon="📉" />
-                        <StatCard title="回測完成" value="5" subtitle="套策略" icon="🧪" />
-                        <StatCard title="系統狀態" value="90.2%" subtitle="成熟度" icon="🎯" />
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                        <button onClick={() => setTab('strategies')} 
-                            className={`px-4 py-2 rounded-lg ${tab === 'strategies' ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                            📊 策略庫 ({strategies.length})
-                        </button>
-                        <button onClick={() => setTab('indicators')} 
-                            className={`px-4 py-2 rounded-lg ${tab === 'indicators' ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                            📉 技術指標 ({indicators.length})
-                        </button>
-                    </div>
-                    
-                    {tab === 'strategies' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {strategies.map((s, i) => (
-                                <div key={i} onClick={() => openDetail(s, 'strategy')}
-                                    className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-indigo-500 transition-all cursor-pointer">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-indigo-400">{s.strategy_name || s.name}</h3>
-                                        <span className="text-xs px-2 py-1 bg-indigo-900/50 text-indigo-400 rounded">{s.category || '策略'}</span>
-                                    </div>
-                                    <p className="text-sm text-gray-400 mt-2">{s.description?.substring(0, 80)}...</p>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {s.risk_level && <span className="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs">風險: {s.risk_level}</span>}
-                                        {s.timeframe && <span className="px-2 py-1 bg-blue-900/50 text-blue-400 rounded text-xs">{s.timeframe}</span>}
-                                    </div>
-                                    <div className="mt-2 text-right text-xs text-gray-500">點擊查看詳情 →</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {tab === 'indicators' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {indicators.map((ind, i) => (
-                                <div key={i} onClick={() => openDetail(ind, 'indicator')}
-                                    className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-green-500 transition-all cursor-pointer">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-green-400">{ind.indicator_name || ind.name}</h3>
-                                        <span className="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">{ind.category}</span>
-                                    </div>
-                                    {ind.formula && <code className="block mt-2 text-xs bg-gray-900 p-2 rounded overflow-x-auto">{ind.formula?.substring(0, 50)}...</code>}
-                                    <div className="mt-2 text-right text-xs text-gray-500">點擊查看詳情 →</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} 
-                        title={selectedItem?.type === 'strategy' ? '📊 策略詳情' : '📉 指標詳情'}>
-                        {selectedItem && (
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-bold text-indigo-400">
-                                    {selectedItem.strategy_name || selectedItem.indicator_name || selectedItem.name}
-                                </h3>
-                                
-                                {selectedItem.description && (
-                                    <div>
-                                        <h4 className="font-semibold text-gray-400 mb-1">說明</h4>
-                                        <p>{selectedItem.description}</p>
-                                    </div>
-                                )}
-                                
-                                {selectedItem.formula && (
-                                    <div>
-                                        <h4 className="font-semibold text-gray-400 mb-1">公式</h4>
-                                        <code className="block bg-gray-900 p-3 rounded text-sm overflow-x-auto">{selectedItem.formula}</code>
-                                    </div>
-                                )}
-
-                                {selectedItem.parameters && (
-                                    <div>
-                                        <h4 className="font-semibold text-gray-400 mb-1">參數</h4>
-                                        <p className="text-sm">{selectedItem.parameters}</p>
-                                    </div>
-                                )}
-
-                                {selectedItem.interpretation && (
-                                    <div>
-                                        <h4 className="font-semibold text-gray-400 mb-1">解讀方式</h4>
-                                        <p className="text-sm">{selectedItem.interpretation}</p>
-                                    </div>
-                                )}
-
-                                {selectedItem.signal_rules && (
-                                    <div>
-                                        <h4 className="font-semibold text-gray-400 mb-1">信號規則</h4>
-                                        <p className="text-sm">{selectedItem.signal_rules}</p>
-                                    </div>
-                                )}
-                                
-                                <div className="flex flex-wrap gap-2 pt-2">
-                                    {selectedItem.category && <span className="px-3 py-1 bg-gray-700 rounded">{selectedItem.category}</span>}
-                                    {selectedItem.risk_level && <span className="px-3 py-1 bg-yellow-900/50 text-yellow-400 rounded">風險: {selectedItem.risk_level}</span>}
-                                    {selectedItem.timeframe && <span className="px-3 py-1 bg-blue-900/50 text-blue-400 rounded">{selectedItem.timeframe}</span>}
-                                </div>
-                            </div>
-                        )}
-                    </Modal>
-                </div>
-            );
+            return (<div className="space-y-6"><h1 className="text-3xl font-bold">📈 交易系統</h1><div className="grid grid-cols-1 md:grid-cols-4 gap-4"><StatCard title="策略數" value={strategies.length} icon="📊" /><StatCard title="指標數" value={indicators.length} icon="📉" /><StatCard title="回測" value="5" icon="🧪" /><StatCard title="成熟度" value="90.2%" icon="🎯" /></div><div className="flex gap-2"><button onClick={() => setTab('strategies')} className={`px-4 py-2 rounded-lg ${tab === 'strategies' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📊 策略 ({strategies.length})</button><button onClick={() => setTab('indicators')} className={`px-4 py-2 rounded-lg ${tab === 'indicators' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📉 指標 ({indicators.length})</button></div>{tab === 'strategies' && (<div className="grid grid-cols-1 md:grid-cols-2 gap-4">{strategies.map((s, i) => (<div key={i} onClick={() => { setSelectedItem({...s, type: 'strategy'}); setModalOpen(true); }} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-indigo-500 cursor-pointer"><h3 className="font-bold text-indigo-400">{s.strategy_name || s.name}</h3><p className="text-sm text-gray-400 mt-1">{s.description?.substring(0, 80)}...</p></div>))}</div>)}{tab === 'indicators' && (<div className="grid grid-cols-1 md:grid-cols-3 gap-4">{indicators.map((ind, i) => (<div key={i} onClick={() => { setSelectedItem({...ind, type: 'indicator'}); setModalOpen(true); }} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-green-500 cursor-pointer"><h3 className="font-bold text-green-400">{ind.indicator_name || ind.name}</h3>{ind.formula && <code className="block mt-2 text-xs bg-gray-900 p-2 rounded">{ind.formula?.substring(0, 40)}...</code>}</div>))}</div>)}<Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selectedItem?.type === 'strategy' ? '📊 策略詳情' : '📉 指標詳情'}>{selectedItem && (<div className="space-y-4"><h3 className="text-xl font-bold text-indigo-400">{selectedItem.strategy_name || selectedItem.indicator_name || selectedItem.name}</h3>{selectedItem.description && <p>{selectedItem.description}</p>}{selectedItem.formula && <div><h4 className="font-semibold text-gray-400">公式</h4><code className="block bg-gray-900 p-3 rounded">{selectedItem.formula}</code></div>}{selectedItem.interpretation && <div><h4 className="font-semibold text-gray-400">解讀</h4><p>{selectedItem.interpretation}</p></div>}</div>)}</Modal></div>);
         };
-        
-        // ============ 虛擬地球 (加強版) ============
         
         const VirtualEarth = () => {
-            const [quests, setQuests] = useState([]);
-            const [shop, setShop] = useState([]);
-            const [npcs, setNpcs] = useState([]);
-            const [tab, setTab] = useState('quests');
-            const [loading, setLoading] = useState(true);
-            const [selectedQuest, setSelectedQuest] = useState(null);
-            const [player, setPlayer] = useState({ gold: 1000, exp: 0, level: 1, inventory: [] });
+            const [tab, setTab] = useState('game');
+            const [currentScenario, setCurrentScenario] = useState(null);
+            const [scenarioResult, setScenarioResult] = useState(null);
+            const [player, setPlayer] = useState({ gold: 500, exp: 0, level: 1, hp: 100, maxHp: 100, completed: [] });
             const [modalOpen, setModalOpen] = useState(false);
             const [modalContent, setModalContent] = useState(null);
-            
-            useEffect(() => {
-                Promise.all([
-                    fetch(`${API_BASE}/api/v1/ve/quests`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/v1/ve/shop`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/v1/ve/npcs`).then(r => r.json())
-                ]).then(([q, s, n]) => {
-                    setQuests(q.quests || []);
-                    setShop(s.items || []);
-                    setNpcs(n.npcs || []);
-                    setLoading(false);
-                }).catch(() => setLoading(false));
-            }, []);
 
-            const startQuest = (quest) => {
-                setModalContent({ type: 'quest', data: quest });
-                setModalOpen(true);
-            };
+            const scenarios = [
+                { id: 'S001', title: '神秘投資機會', difficulty: '簡單', description: '你收到訊息：「獨家內線！保證報酬50%！只限今天！」', options: [{ id: 'A', text: '立即匯款投資', correct: false, feedback: '❌ 這是投資詐騙！「保證獲利」是最大警訊。' }, { id: 'B', text: '先查證對方身份', correct: true, feedback: '✅ 正確！永遠要先查證，可上金管會網站確認。' }, { id: 'C', text: '小額試試', correct: false, feedback: '❌ 詐騙會讓你先賺，再騙更多！' }, { id: 'D', text: '問朋友', correct: false, feedback: '❌ 會害朋友一起被騙。' }], exp: 100, gold: 50 },
+                { id: 'S002', title: '假冒銀行來電', difficulty: '簡單', description: '「我是銀行風控，您帳戶異常，請提供密碼驗證。」', options: [{ id: 'A', text: '提供密碼', correct: false, feedback: '❌ 銀行絕不會要密碼！' }, { id: 'B', text: '掛斷，自己打客服', correct: true, feedback: '✅ 正確！永遠自己撥打官方電話確認。' }, { id: 'C', text: '請對方證明身份', correct: false, feedback: '❌ 證件可偽造。' }, { id: 'D', text: '提供一半密碼', correct: false, feedback: '❌ 任何密碼都不能說！' }], exp: 100, gold: 50 },
+                { id: 'S003', title: '網購超低價', difficulty: '中等', description: '名牌包只要1/10價格，賣家說是「員工內購價」，要私下轉帳。', options: [{ id: 'A', text: '直接匯款', correct: false, feedback: '❌ 私下轉帳沒保障！' }, { id: 'B', text: '要求用蝦皮交易', correct: true, feedback: '✅ 正確！使用有保障的平台。' }, { id: 'C', text: '要求更多照片', correct: false, feedback: '❌ 照片可盜圖。' }, { id: 'D', text: '付一半訂金', correct: false, feedback: '❌ 訂金拿不回來！' }], exp: 150, gold: 80 },
+                { id: 'S004', title: '交友軟體借錢', difficulty: '困難', description: '認識一個月的對象說媽媽住院，需要借5萬。', options: [{ id: 'A', text: '借給他', correct: false, feedback: '❌ 這是「殺豬盤」愛情詐騙！' }, { id: 'B', text: '要求視訊確認', correct: true, feedback: '✅ 正確！愛情詐騙者會拒絕視訊。' }, { id: 'C', text: '借小筆', correct: false, feedback: '❌ 會有更多「緊急狀況」。' }, { id: 'D', text: '要求醫療證明', correct: false, feedback: '❌ 文件可偽造。' }], exp: 200, gold: 120 },
+                { id: 'S005', title: '中獎簡訊', difficulty: '簡單', description: '「恭喜抽中iPhone！付399運費即可領取！」', options: [{ id: 'A', text: '點連結付款', correct: false, feedback: '❌ 這是預付費詐騙！' }, { id: 'B', text: '確認有沒有參加抽獎', correct: true, feedback: '✅ 正確！沒參加的不可能中獎。' }, { id: 'C', text: '回覆詢問', correct: false, feedback: '❌ 會暴露有效號碼。' }, { id: 'D', text: '轉發朋友', correct: false, feedback: '❌ 會害朋友被騙！' }], exp: 80, gold: 40 }
+            ];
 
-            const completeQuest = (quest) => {
-                setPlayer(prev => ({
-                    ...prev,
-                    gold: prev.gold + (quest.gold_reward || 0),
-                    exp: prev.exp + (quest.exp_reward || 0),
-                    level: Math.floor((prev.exp + quest.exp_reward) / 500) + 1
-                }));
-                setModalContent({ type: 'reward', data: quest });
-            };
+            const startScenario = (s) => { setCurrentScenario(s); setScenarioResult(null); setTab('playing'); };
+            const answerScenario = (opt) => { setScenarioResult(opt); if (opt.correct) { setPlayer(p => ({ ...p, exp: p.exp + currentScenario.exp, gold: p.gold + currentScenario.gold, level: Math.floor((p.exp + currentScenario.exp) / 300) + 1, completed: [...p.completed, currentScenario.id] })); } else { setPlayer(p => ({ ...p, hp: Math.max(0, p.hp - 20), exp: p.exp + 20 })); } };
+            const nextScenario = () => { const idx = scenarios.findIndex(s => s.id === currentScenario.id); if (idx < scenarios.length - 1) { startScenario(scenarios[idx + 1]); } else { setTab('game'); setCurrentScenario(null); } };
 
-            const buyItem = (item) => {
-                if (player.gold >= item.price) {
-                    setPlayer(prev => ({
-                        ...prev,
-                        gold: prev.gold - item.price,
-                        inventory: [...prev.inventory, item.item_name]
-                    }));
-                    setModalContent({ type: 'purchase', data: item });
-                    setModalOpen(true);
-                } else {
-                    setModalContent({ type: 'error', message: '金幣不足！' });
-                    setModalOpen(true);
-                }
-            };
+            const PlayerStatus = () => (<div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-xl p-4 border border-indigo-500 mb-6"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-2xl">🧙</div><div><div className="text-sm text-gray-400">防詐勇士</div><div className="font-bold text-xl">Lv.{player.level}</div></div></div><div className="flex gap-6"><div className="text-center"><div className="text-red-400 font-bold">❤️ {player.hp}/{player.maxHp}</div><div className="text-xs text-gray-500">生命</div></div><div className="text-center"><div className="text-yellow-400 font-bold">💰 {player.gold}</div><div className="text-xs text-gray-500">金幣</div></div><div className="text-center"><div className="text-green-400 font-bold">⭐ {player.exp}</div><div className="text-xs text-gray-500">經驗</div></div><div className="text-center"><div className="text-blue-400 font-bold">🎯 {player.completed.length}/{scenarios.length}</div><div className="text-xs text-gray-500">完成</div></div></div></div><div className="mt-3 grid grid-cols-2 gap-2"><div><div className="text-xs text-gray-500 mb-1">HP</div><div className="bg-gray-700 rounded-full h-2"><div className="bg-red-500 h-2 rounded-full progress-bar" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div></div></div><div><div className="text-xs text-gray-500 mb-1">EXP ({player.exp % 300}/300)</div><div className="bg-gray-700 rounded-full h-2"><div className="bg-green-500 h-2 rounded-full progress-bar" style={{ width: `${(player.exp % 300) / 3}%` }}></div></div></div></div></div>);
 
-            const talkToNpc = (npc) => {
-                setModalContent({ type: 'npc', data: npc });
-                setModalOpen(true);
-            };
-            
-            if (loading) return <Loading />;
-            
-            return (
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h1 className="text-3xl font-bold">🌍 虛擬地球 - E18K 防詐遊戲</h1>
-                    </div>
+            if (tab === 'playing' && currentScenario) {
+                return (<div className="space-y-6 max-w-3xl mx-auto"><PlayerStatus /><div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"><div className="bg-gradient-to-r from-red-600 to-orange-600 p-4"><div className="flex justify-between"><h2 className="text-xl font-bold">🚨 {currentScenario.title}</h2><span className={`px-3 py-1 rounded-full text-sm ${currentScenario.difficulty === '簡單' ? 'bg-green-900 text-green-300' : currentScenario.difficulty === '中等' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>{currentScenario.difficulty}</span></div></div><div className="p-6"><div className="bg-gray-900/50 rounded-lg p-4 mb-6 border-l-4 border-yellow-500"><p className="text-lg">{currentScenario.description}</p></div><h3 className="font-semibold mb-4 text-gray-300">你會怎麼做？</h3><div className="space-y-3">{currentScenario.options?.map((opt, i) => { const isSelected = scenarioResult?.id === opt.id; const showResult = scenarioResult !== null; let btnClass = 'bg-gray-900/50 border-gray-600 hover:border-indigo-500'; if (showResult) { if (opt.correct) btnClass = 'bg-green-900/50 border-green-500'; else if (isSelected) btnClass = 'bg-red-900/50 border-red-500 shake'; else btnClass = 'bg-gray-900/50 border-gray-700 opacity-50'; } return (<button key={i} onClick={() => !scenarioResult && answerScenario(opt)} disabled={scenarioResult !== null} className={`w-full text-left p-4 rounded-lg border-2 transition-all ${btnClass}`}><span className="font-bold text-indigo-400 mr-2">{opt.id}.</span>{opt.text}</button>); })}</div>{scenarioResult && (<div className={`mt-6 p-4 rounded-lg fade-in ${scenarioResult.correct ? 'bg-green-900/30 border border-green-600' : 'bg-red-900/30 border border-red-600'}`}><p className="text-lg">{scenarioResult.feedback}</p>{scenarioResult.correct && (<div className="mt-3 flex gap-4 text-sm"><span className="text-green-400">🏆 +{currentScenario.exp} EXP</span><span className="text-yellow-400">💰 +{currentScenario.gold}</span></div>)}{!scenarioResult.correct && (<div className="mt-3 text-sm text-red-400">❤️ -20 HP | ⭐ +20 EXP</div>)}</div>)}{scenarioResult && (<div className="mt-6 flex gap-4"><button onClick={() => { setTab('game'); setCurrentScenario(null); }} className="flex-1 py-3 bg-gray-700 rounded-lg">返回</button><button onClick={nextScenario} className="flex-1 py-3 bg-indigo-600 rounded-lg font-semibold">{scenarios.findIndex(s => s.id === currentScenario.id) < scenarios.length - 1 ? '下一關 →' : '完成'}</button></div>)}</div></div></div>);
+            }
 
-                    {/* 玩家狀態 */}
-                    <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-xl p-4 border border-indigo-500">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-2xl">🧙</div>
-                                <div>
-                                    <div className="text-sm text-gray-400">冒險者</div>
-                                    <div className="font-bold">Lv.{player.level}</div>
-                                </div>
-                            </div>
-                            <div className="flex gap-6">
-                                <div className="text-center">
-                                    <div className="text-yellow-400 font-bold">💰 {player.gold}</div>
-                                    <div className="text-xs text-gray-500">金幣</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-green-400 font-bold">⭐ {player.exp}</div>
-                                    <div className="text-xs text-gray-500">經驗值</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-blue-400 font-bold">🎒 {player.inventory.length}</div>
-                                    <div className="text-xs text-gray-500">物品</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-3 bg-gray-700 rounded-full h-2">
-                            <div className="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full progress-bar" 
-                                style={{ width: `${(player.exp % 500) / 5}%` }}></div>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">升級進度: {player.exp % 500} / 500</div>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                        <button onClick={() => setTab('quests')} className={`px-4 py-2 rounded-lg ${tab === 'quests' ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                            🎯 任務 ({quests.length})
-                        </button>
-                        <button onClick={() => setTab('shop')} className={`px-4 py-2 rounded-lg ${tab === 'shop' ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                            🏪 商店 ({shop.length})
-                        </button>
-                        <button onClick={() => setTab('npcs')} className={`px-4 py-2 rounded-lg ${tab === 'npcs' ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}>
-                            👥 NPC ({npcs.length})
-                        </button>
-                    </div>
-                    
-                    {tab === 'quests' && (
-                        <div className="space-y-4">
-                            {quests.map((q, i) => (
-                                <div key={i} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-indigo-500 transition-all">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-indigo-400">{q.quest_id}: {q.quest_name}</h3>
-                                                <span className={`text-xs px-2 py-1 rounded ${
-                                                    q.difficulty === '簡單' ? 'bg-green-900/50 text-green-400' :
-                                                    q.difficulty === '中等' ? 'bg-yellow-900/50 text-yellow-400' :
-                                                    q.difficulty === '困難' ? 'bg-red-900/50 text-red-400' :
-                                                    'bg-purple-900/50 text-purple-400'
-                                                }`}>{q.difficulty}</span>
-                                            </div>
-                                            {q.description && <p className="text-sm text-gray-400 mt-1">{q.description}</p>}
-                                        </div>
-                                        <div className="text-right ml-4">
-                                            <div className="text-yellow-400">🏆 {q.exp_reward} EXP</div>
-                                            <div className="text-yellow-500">💰 {q.gold_reward} Gold</div>
-                                            {q.item_reward && <div className="text-green-400 text-sm">🎁 {q.item_reward}</div>}
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 flex gap-2">
-                                        <button onClick={() => startQuest(q)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm">
-                                            開始任務
-                                        </button>
-                                        <button onClick={() => completeQuest(q)} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm">
-                                            模擬完成
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {tab === 'shop' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {shop.map((item, i) => (
-                                <div key={i} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-yellow-500 transition-all">
-                                    <div className="flex items-start gap-3">
-                                        <div className="text-3xl">{
-                                            item.item_name?.includes('藥水') ? '🧪' :
-                                            item.item_name?.includes('劍') ? '⚔️' :
-                                            item.item_name?.includes('盾') ? '🛡️' :
-                                            item.item_name?.includes('書') ? '📖' : '📦'
-                                        }</div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-yellow-400">{item.item_name}</h3>
-                                            <p className="text-sm text-gray-400 mt-1">{item.description}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 flex justify-between items-center">
-                                        <span className="text-yellow-500 font-bold">💰 {item.price} Gold</span>
-                                        <button onClick={() => buyItem(item)}
-                                            className={`px-4 py-2 rounded text-sm ${player.gold >= item.price ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-600 cursor-not-allowed'}`}
-                                            disabled={player.gold < item.price}>
-                                            {player.gold >= item.price ? '購買' : '金幣不足'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {tab === 'npcs' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {npcs.map((npc, i) => (
-                                <div key={i} onClick={() => talkToNpc(npc)}
-                                    className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-blue-500 transition-all cursor-pointer">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-2xl">
-                                            {npc.npc_id?.includes('GUIDE') ? '🧙' :
-                                             npc.npc_id?.includes('MERCHANT') ? '🛒' :
-                                             npc.npc_id?.includes('SAGE') ? '📚' : '👤'}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-blue-400">{npc.npc_name || npc.npc_id}</h3>
-                                            <p className="text-sm text-gray-400">{npc.dialogue_text?.substring(0, 50)}...</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 text-right text-xs text-gray-500">點擊對話 →</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={
-                        modalContent?.type === 'quest' ? '🎯 任務詳情' :
-                        modalContent?.type === 'reward' ? '🎉 任務完成！' :
-                        modalContent?.type === 'purchase' ? '🛒 購買成功！' :
-                        modalContent?.type === 'npc' ? '💬 對話' :
-                        '提示'
-                    }>
-                        {modalContent?.type === 'quest' && (
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-bold">{modalContent.data.quest_name}</h3>
-                                <p className="text-gray-400">{modalContent.data.description || '完成這個任務來獲取獎勵！'}</p>
-                                <div className="bg-gray-900/50 p-4 rounded-lg">
-                                    <div className="text-sm text-gray-500 mb-2">獎勵</div>
-                                    <div className="flex gap-4">
-                                        <span className="text-yellow-400">🏆 {modalContent.data.exp_reward} EXP</span>
-                                        <span className="text-yellow-500">💰 {modalContent.data.gold_reward} Gold</span>
-                                    </div>
-                                    {modalContent.data.item_reward && (
-                                        <div className="text-green-400 mt-2">🎁 {modalContent.data.item_reward}</div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        {modalContent?.type === 'reward' && (
-                            <div className="text-center space-y-4">
-                                <div className="text-6xl">🎉</div>
-                                <p>恭喜完成任務！</p>
-                                <div className="flex justify-center gap-4">
-                                    <span className="text-yellow-400 text-xl">+{modalContent.data.exp_reward} EXP</span>
-                                    <span className="text-yellow-500 text-xl">+{modalContent.data.gold_reward} Gold</span>
-                                </div>
-                            </div>
-                        )}
-                        {modalContent?.type === 'purchase' && (
-                            <div className="text-center space-y-4">
-                                <div className="text-6xl">✅</div>
-                                <p>成功購買 <span className="text-yellow-400">{modalContent.data.item_name}</span>！</p>
-                                <p className="text-gray-400">物品已加入背包</p>
-                            </div>
-                        )}
-                        {modalContent?.type === 'npc' && (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-3xl">🧙</div>
-                                    <div>
-                                        <div className="font-bold text-blue-400">{modalContent.data.npc_name || modalContent.data.npc_id}</div>
-                                    </div>
-                                </div>
-                                <div className="bg-gray-900/50 p-4 rounded-lg">
-                                    <p>{modalContent.data.dialogue_text}</p>
-                                </div>
-                            </div>
-                        )}
-                        {modalContent?.type === 'error' && (
-                            <div className="text-center">
-                                <div className="text-6xl mb-4">😢</div>
-                                <p className="text-red-400">{modalContent.message}</p>
-                            </div>
-                        )}
-                    </Modal>
-                </div>
-            );
+            return (<div className="space-y-6"><h1 className="text-3xl font-bold">🌍 虛擬地球 - E18K 防詐遊戲</h1><PlayerStatus /><div className="flex gap-2"><button onClick={() => setTab('game')} className={`px-4 py-2 rounded-lg ${tab === 'game' ? 'bg-indigo-600' : 'bg-gray-800'}`}>🎮 遊戲關卡</button><button onClick={() => setTab('tips')} className={`px-4 py-2 rounded-lg ${tab === 'tips' ? 'bg-indigo-600' : 'bg-gray-800'}`}>📖 防詐小知識</button></div>{tab === 'game' && (<div className="space-y-4"><div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-2">🎯 防詐情境挑戰</h2><p className="text-gray-400 mb-4">面對各種詐騙情境，做出正確判斷！答對獲得獎勵，答錯扣血量。</p><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{scenarios.map((s, i) => { const isCompleted = player.completed.includes(s.id); return (<div key={i} className={`bg-gray-900/50 rounded-lg p-4 border ${isCompleted ? 'border-green-600' : 'border-gray-600'}`}><div className="flex justify-between mb-2"><h3 className="font-bold text-indigo-400">{s.title}</h3>{isCompleted && <span className="text-green-400">✅</span>}</div><span className={`text-xs px-2 py-1 rounded ${s.difficulty === '簡單' ? 'bg-green-900/50 text-green-400' : s.difficulty === '中等' ? 'bg-yellow-900/50 text-yellow-400' : 'bg-red-900/50 text-red-400'}`}>{s.difficulty}</span><p className="text-sm text-gray-400 mt-2">{s.description?.substring(0, 40)}...</p><div className="mt-3 flex justify-between items-center"><div className="text-xs text-gray-500">🏆 {s.exp} | 💰 {s.gold}</div><button onClick={() => startScenario(s)} className={`px-3 py-1 rounded text-sm ${isCompleted ? 'bg-gray-700' : 'bg-indigo-600'}`}>{isCompleted ? '重玩' : '挑戰'}</button></div></div>); })}</div></div></div>)}{tab === 'tips' && (<div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"><h2 className="text-xl font-semibold mb-4">📖 防詐小知識</h2><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="bg-gray-900/50 p-4 rounded-lg border-l-4 border-red-500"><h3 className="font-bold text-red-400 mb-2">🚫 詐騙常見手法</h3><ul className="text-sm text-gray-400 space-y-1"><li>• 投資詐騙：保證獲利、穩賺不賠</li><li>• 假冒身份：銀行、警察、法院</li><li>• 網購詐騙：價格過低、私下交易</li><li>• 愛情詐騙：網路交友、借錢急用</li></ul></div><div className="bg-gray-900/50 p-4 rounded-lg border-l-4 border-green-500"><h3 className="font-bold text-green-400 mb-2">✅ 防詐三要訣</h3><ul className="text-sm text-gray-400 space-y-1"><li>• <strong>冷靜</strong>：不急著做決定</li><li>• <strong>查證</strong>：自己打電話確認</li><li>• <strong>求助</strong>：撥打165反詐騙專線</li><li>• 記住：天下沒有白吃的午餐！</li></ul></div></div></div>)}</div>);
         };
-        
-        // ============ 主應用 ============
         
         const App = () => {
             const [currentPage, setCurrentPage] = useState('dashboard');
-            
-            const renderPage = () => {
-                switch (currentPage) {
-                    case 'dashboard': return <Dashboard />;
-                    case 'qixing': return <QiXing />;
-                    case 'databases': return <Databases />;
-                    case 'trade': return <Trade />;
-                    case 'education': return <Education />;
-                    case 've': return <VirtualEarth />;
-                    default: return <Dashboard />;
-                }
-            };
-            
-            return (
-                <div className="min-h-screen">
-                    <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-                    <main className="max-w-7xl mx-auto px-4 py-8">{renderPage()}</main>
-                    <footer className="text-center py-6 text-gray-500 text-sm border-t border-gray-800">
-                        <p>VE-System v1.0.0 | 北斗七星文創數位有限公司</p>
-                        <p className="mt-1">道的1%原則 · 日拱一卒</p>
-                    </footer>
-                </div>
-            );
+            const renderPage = () => { switch (currentPage) { case 'dashboard': return <Dashboard />; case 'qixing': return <QiXing />; case 'databases': return <Databases />; case 'trade': return <Trade />; case 'education': return <Education />; case 've': return <VirtualEarth />; default: return <Dashboard />; } };
+            return (<div className="min-h-screen"><Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} /><main className="max-w-7xl mx-auto px-4 py-8">{renderPage()}</main><footer className="text-center py-6 text-gray-500 text-sm border-t border-gray-800"><p>VE-System v1.0.0 | 北斗七星文創數位有限公司</p><p className="mt-1">道的1%原則 · 日拱一卒</p></footer></div>);
         };
         
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
