@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VE-System 虛擾地球系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+        .card-glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        .star-glow { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .loading-spin { animation: spin 1s linear infinite; }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // API 基礎 URL
+        const API_BASE = 'https://ve-system.onrender.com';
+        
+        // ============ 組件 ============
+        
+        // 導航欄
+        const Navbar = ({ currentPage, setCurrentPage }) => {
+            const navItems = [
+                { id: 'dashboard', name: '儀表板', icon: '📊' },
+                { id: 'qixing', name: '北斗七星', icon: '⭐' },
+                { id: 'databases', name: '資料庫', icon: '🗄️' },
+                { id: 'trade', name: '交易系統', icon: '📈' },
+                { id: 'education', name: '教育系統', icon: '📚' },
+                { id: 've', name: '虛擬地球', icon: '🌍' },
+            ];
+            
+            return (
+                <nav className="bg-gray-900/50 backdrop-blur-md border-b border-gray-700 sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center space-x-2">
+                                <span className="text-2xl">🌌</span>
+                                <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                                    VE-System
+                                </span>
+                            </div>
+                            <div className="flex space-x-1">
+                                {navItems.map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setCurrentPage(item.id)}
+                                        className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                                            currentPage === item.id
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'text-gray-300 hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        <span className="mr-1">{item.icon}</span>
+                                        <span className="hidden md:inline">{item.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+        
+        // 載入中
+        const Loading = () => (
+            <div className="flex items-center justify-center p-8">
+                <div className="loading-spin text-4xl">⚙️</div>
+                <span className="ml-3 text-gray-400">載入中...</span>
+            </div>
+        );
+        
+        // 統計卡片
+        const StatCard = ({ title, value, subtitle, icon, color = 'indigo' }) => (
+            <div className={`bg-gray-800/50 backdrop-blur rounded-xl p-6 border border-gray-700 hover:border-${color}-500 transition-all card-glow`}>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-gray-400 text-sm">{title}</p>
+                        <p className="text-3xl font-bold mt-1">{value}</p>
+                        {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+                    </div>
+                    <div className="text-4xl opacity-80">{icon}</div>
+                </div>
+            </div>
+        );
+        
+        // ============ 頁面 ============
+        
+        // 儀表板
+        const Dashboard = () => {
+            const [status, setStatus] = useState(null);
+            const [loading, setLoading] = useState(true);
+            
+            useEffect(() => {
+                fetch(`${API_BASE}/api/v1/status`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setStatus(data);
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setLoading(false);
+                    });
+            }, []);
+            
+            if (loading) return <Loading />;
+            
+            return (
+                <div className="space-y-6">
+                    <div className="text-center py-8">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            虛擾地球系統
+                        </h1>
+                        <p className="text-gray-400 mt-2">Virtual Earth System</p>
+                        <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-900/50 rounded-full border border-green-500">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                            <span className="text-green-400">系統運行中</span>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard 
+                            title="系統成熟度" 
+                            value={status?.maturity || '90.7%'} 
+                            subtitle="產品級" 
+                            icon="🎯" 
+                        />
+                        <StatCard 
+                            title="資料庫" 
+                            value={status?.totals?.databases || 9} 
+                            subtitle="九宮格局" 
+                            icon="🗄️" 
+                        />
+                        <StatCard 
+                            title="資料表" 
+                            value={status?.totals?.tables?.toLocaleString() || '1,663'} 
+                            subtitle="結構完整" 
+                            icon="📋" 
+                        />
+                        <StatCard 
+                            title="資料筆數" 
+                            value={status?.totals?.records?.toLocaleString() || '146,626'} 
+                            subtitle="持續累積" 
+                            icon="📊" 
+                        />
+                    </div>
+                    
+                    <div className="bg-gray-800/50 backdrop-blur rounded-xl p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4 flex items-center">
+                            <span className="mr-2">🗄️</span> 九庫統計
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {status?.databases && Object.entries(status.databases).map(([name, db]) => (
+                                <div key={name} className="bg-gray-900/50 rounded-lg p-4 border border-gray-600 hover:border-indigo-500 transition-all">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-medium text-indigo-400">{name}.db</span>
+                                        <span className="text-xs text-gray-500">{db.tables} 表</span>
+                                    </div>
+                                    <div className="mt-2">
+                                        <div className="text-2xl font-bold">{db.records?.toLocaleString()}</div>
+                                        <div className="text-xs text-gray-500">筆資料</div>
+                                    </div>
+                                    <div className="mt-2 bg-gray-700 rounded-full h-2">
+                                        <div 
+                                            className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full"
+                                            style={{ width: `${Math.min(db.records / 1000, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 北斗七星
+        const QiXing = () => {
+            const [qixing, setQixing] = useState(null);
+            const [loading, setLoading] = useState(true);
+            
+            useEffect(() => {
+                fetch(`${API_BASE}/api/v1/qixing`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setQixing(data);
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setLoading(false);
+                    });
+            }, []);
+            
+            if (loading) return <Loading />;
+            
+            const starPositions = [
+                { top: '10%', left: '20%' },
+                { top: '15%', left: '35%' },
+                { top: '25%', left: '48%' },
+                { top: '40%', left: '55%' },
+                { top: '55%', left: '50%' },
+                { top: '65%', left: '60%' },
+                { top: '75%', left: '70%' },
+            ];
+            
+            return (
+                <div className="space-y-6">
+                    <div className="text-center py-4">
+                        <h1 className="text-3xl font-bold">⭐ 北斗七星協作體系</h1>
+                        <p className="text-gray-400 mt-2">七星對齊率: {qixing?.alignment || '99.7%'}</p>
+                    </div>
+                    
+                    <div className="relative bg-gray-900/50 rounded-xl p-8 border border-gray-700 min-h-[500px]">
+                        {/* 星空背景 */}
+                        <div className="absolute inset-0 overflow-hidden rounded-xl">
+                            {[...Array(50)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute w-1 h-1 bg-white rounded-full opacity-30"
+                                    style={{
+                                        top: `${Math.random() * 100}%`,
+                                        left: `${Math.random() * 100}%`,
+                                        animationDelay: `${Math.random() * 2}s`
+                                    }}
+                                ></div>
+                            ))}
+                        </div>
+                        
+                        {/* 連線 */}
+                        <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+                            <path
+                                d="M 120 60 L 200 85 L 280 140 L 320 220 L 290 300 L 350 360 L 420 420"
+                                stroke="rgba(99, 102, 241, 0.5)"
+                                strokeWidth="2"
+                                fill="none"
+                            />
+                        </svg>
+                        
+                        {/* 七星 */}
+                        {qixing?.stars?.map((star, index) => (
+                            <div
+                                key={star.id}
+                                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
+                                style={starPositions[index]}
+                            >
+                                <div className="relative group cursor-pointer">
+                                    <div className="text-4xl star-glow" style={{ animationDelay: `${index * 0.2}s` }}>
+                                        ⭐
+                                    </div>
+                                    <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 bg-gray-800 px-3 py-2 rounded-lg border border-indigo-500 opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap">
+                                        <div className="font-bold text-indigo-400">{star.name}</div>
+                                        <div className="text-sm text-gray-400">{star.role}</div>
+                                        <div className="text-xs text-green-400 mt-1">● {star.status}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* 七星列表 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {qixing?.stars?.map(star => (
+                            <div key={star.id} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-indigo-500 transition-all">
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-2xl">⭐</span>
+                                    <div>
+                                        <div className="font-bold text-indigo-400">{star.name}</div>
+                                        <div className="text-sm text-gray-400">{star.role}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 flex items-center">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                    <span className="text-sm text-green-400">{star.status}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        // 資料庫瀏覽器
+        const Databases = () => {
+            const [selectedDb, setSelectedDb] = useState(null);
+            const [tables, setTables] = useState([]);
+            const [selectedTable, setSelectedTable] = useState(null);
+            const [tableData, setTableData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            
+            const databases = ['meta', 've', 'trade', 'education', 'business', 'clarity', 'corpus', 'taoist', 'work'];
+            
+            const loadTables = async (db) => {
+                setLoading(true);
+                setSelectedDb(db);
+                setSelectedTable(null);
+                setTableData(null);
+                try {
+                    const res = await fetch(`${API_BASE}/api/v1/db/${db}/tables`);
+                    const data = await res.json();
+                    setTables(data.tables || []);
+                } catch (err) {
+                    console.error(err);
+                }
+                setLoading(false);
+            };
+            
+            const loadTableData = async (table) => {
+                setLoading(true);
+                setSelectedTable(table);
+                try {
+                    const res = await fetch(`${API_BASE}/api/v1/db/${selectedDb}/table/${table}?limit=10`);
+                    const data = await res.json();
+                    setTableData(data);
+                } catch (err) {
+                    console.error(err);
+                }
+                setLoading(false);
+            };
+            
+            return (
+                <div className="space-y-6">
+                    <h1 className="text-3xl font-bold">🗄️ 資料庫瀏覽器</h1>
+                    
+                    {/* 資料庫選擇 */}
+                    <div className="flex flex-wrap gap-2">
+                        {databases.map(db => (
+                            <button
+                                key={db}
+                                onClick={() => loadTables(db)}
+                                className={`px-4 py-2 rounded-lg transition-all ${
+                                    selectedDb === db
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                }`}
+                            >
+                                {db}.db
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {loading && <Loading />}
+                    
+                    {/* 資料表列表 */}
+                    {selectedDb && !loading && (
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 max-h-[600px] overflow-y-auto">
+                                <h3 className="font-semibold mb-3 text-indigo-400">
+                                    {selectedDb}.db ({tables.length} 表)
+                                </h3>
+                                <div className="space-y-1">
+                                    {tables.map(table => (
+                                        <button
+                                            key={table}
+                                            onClick={() => loadTableData(table)}
+                                            className={`w-full text-left px-3 py-2 rounded text-sm transition-all ${
+                                                selectedTable === table
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'text-gray-300 hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            {table}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* 資料預覽 */}
+                            <div className="lg:col-span-3 bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                {tableData ? (
+                                    <div>
+                                        <h3 className="font-semibold mb-3 text-indigo-400">
+                                            {selectedTable} (共 {tableData.pagination?.total} 筆)
+                                        </h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b border-gray-700">
+                                                        {tableData.columns?.map(col => (
+                                                            <th key={col} className="text-left p-2 text-gray-400">{col}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {tableData.data?.map((row, i) => (
+                                                        <tr key={i} className="border-b border-gray-800 hover:bg-gray-700/50">
+                                                            {tableData.columns?.map(col => (
+                                                                <td key={col} className="p-2 max-w-xs truncate">
+                                                                    {typeof row[col] === 'object' 
+                                                                        ? JSON.stringify(row[col]).substring(0, 50) 
+                                                                        : String(row[col] || '').substring(0, 50)}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-gray-500 py-20">
+                                        ← 選擇一個資料表查看內容
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        // 交易系統
+        const Trade = () => (
+            <div className="space-y-6">
+                <h1 className="text-3xl font-bold">📈 交易系統</h1>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                        <h3 className="text-xl font-semibold mb-4">📊 策略庫</h3>
+                        <p className="text-gray-400">19 種核心策略</p>
+                        <p className="text-gray-400">15 個技術指標</p>
+                        <p className="text-gray-400">5 套回測結果</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                        <h3 className="text-xl font-semibold mb-4">🛡️ 風險管理</h3>
+                        <p className="text-gray-400">資金管理規則</p>
+                        <p className="text-gray-400">止損止盈設定</p>
+                        <p className="text-gray-400">心理紀律檢核</p>
+                    </div>
+                </div>
+                <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-4">
+                    <p className="text-yellow-400">🚧 完整交易介面開發中...</p>
+                </div>
+            </div>
+        );
+        
+        // 教育系統
+        const Education = () => (
+            <div className="space-y-6">
+                <h1 className="text-3xl font-bold">📚 教育系統</h1>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatCard title="題庫" value="107" subtitle="題" icon="❓" />
+                    <StatCard title="科目" value="9" subtitle="學科" icon="📖" />
+                    <StatCard title="成就" value="12" subtitle="項" icon="🏆" />
+                </div>
+                <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-4">
+                    <p className="text-yellow-400">🚧 學習介面開發中...</p>
+                </div>
+            </div>
+        );
+        
+        // 虛擬地球
+        const VirtualEarth = () => (
+            <div className="space-y-6">
+                <h1 className="text-3xl font-bold">🌍 虛擬地球</h1>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                        <h3 className="text-xl font-semibold mb-4">🎮 E18K 防詐遊戲</h3>
+                        <p className="text-gray-400">11 個任務</p>
+                        <p className="text-gray-400">5 個區域</p>
+                        <p className="text-gray-400">8 個 NPC</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                        <h3 className="text-xl font-semibold mb-4">🏪 遊戲商店</h3>
+                        <p className="text-gray-400">9 種商品</p>
+                        <p className="text-gray-400">任務獎勵系統</p>
+                        <p className="text-gray-400">成就解鎖</p>
+                    </div>
+                </div>
+                <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl p-4">
+                    <p className="text-yellow-400">🚧 遊戲入口開發中...</p>
+                </div>
+            </div>
+        );
+        
+        // ============ 主應用 ============
+        
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            
+            const renderPage = () => {
+                switch (currentPage) {
+                    case 'dashboard': return <Dashboard />;
+                    case 'qixing': return <QiXing />;
+                    case 'databases': return <Databases />;
+                    case 'trade': return <Trade />;
+                    case 'education': return <Education />;
+                    case 've': return <VirtualEarth />;
+                    default: return <Dashboard />;
+                }
+            };
+            
+            return (
+                <div className="min-h-screen">
+                    <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {renderPage()}
+                    </main>
+                    <footer className="text-center py-6 text-gray-500 text-sm">
+                        <p>VE-System v1.0.0 | 北斗七星文創數位有限公司</p>
+                        <p className="mt-1">道的1%原則 · 日拱一卒</p>
+                    </footer>
+                </div>
+            );
+        };
+        
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
