@@ -502,9 +502,18 @@ const GamePage=()=>{
     
     const play=(s)=>{setScene(s);setResult(null);setState('playing');};
     
-    const answer=(o)=>{
+    const answer=async(o)=>{
         setResult(o);
-        if(ctx&&!ctx.isAuth){
+        // 登入用戶 - 呼叫後端記錄並更新
+        if(ctx?.isAuth){
+            try{
+                await api.post('/api/v1/progress/game',{scenario_id:scene.id,completed:o.ok,score:o.ok?scene.reward.exp:0});
+                // 更新用戶資料
+                const d=await api.get('/api/v1/user/profile');
+                if(d.user)ctx.set({user:d.user});
+            }catch(e){}
+        }else{
+            // 未登入 - 本地更新
             const nl={...local};
             if(o.ok){nl.exp+=scene.reward.exp;nl.gold+=scene.reward.gold;if(!nl.completed.includes(scene.id))nl.completed.push(scene.id);}
             else{nl.hp=Math.max(0,nl.hp-20);nl.exp+=20;}
@@ -597,7 +606,7 @@ const App=()=>{
                     {page==='edu'&&<EduPage/>}
                     {page==='game'&&<GamePage/>}
                 </main>
-                <footer className="text-center py-4 text-slate-500 text-xs">VE-System v9b | 北斗七星文創數位</footer>
+                <footer className="text-center py-4 text-slate-500 text-xs">VE-System v9d | 北斗七星文創數位</footer>
             </div>
         </StoreContext.Provider>
     );
